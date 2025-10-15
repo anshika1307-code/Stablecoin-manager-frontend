@@ -1,0 +1,38 @@
+:root {
+  --brand-blue: #3B82F6;
+  --brand-purple: #8B5CF6;
+  --brand-indigo: #6366F1;
+  --background: #0F172A;
+  --foreground: #ffffff;
+  --radius: 0.75rem;
+}
+
+/* Glassmorphism */
+.glass {
+  background: rgba(30, 41, 59, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+}
+
+/* Border glow */
+.border-glow {
+  border-color: rgba(99, 102, 241, 0.4);
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.2);
+}
+
+/* Text glow */
+.text-glow-blue {
+  text-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+}
+
+.text-glow-purple {
+  text-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
+}
+
+/* Base styles */
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}

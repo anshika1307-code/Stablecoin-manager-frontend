@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { LandingPage } from "./pages/LandingPage.tsx";
 
 
 
@@ -28,7 +29,9 @@ export default function App() {
       />
 
       {/* Content */}
-
+      <div className="relative z-10">
+        <LandingPage onNavigate={(page) => console.log("Navigate to:", page)} />
+      </div>
   
     </div>
   );
