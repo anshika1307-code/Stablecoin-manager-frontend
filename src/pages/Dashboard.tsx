@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { TrendingUp, TrendingDown, ArrowUpRight, RefreshCw } from "lucide-react";
+import { TrendingUp, ArrowUpRight, RefreshCw } from "lucide-react";
 // import { AsaAgent } from "../components/AsaAgent";
 // import { StabilityGauge } from "../components/StabilityGauge";
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip } from "recharts";

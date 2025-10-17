@@ -2,22 +2,26 @@ import { useState } from "react";
 import { LandingPage } from "./pages/LandingPage.tsx";
 import { Dashboard } from "./pages/Dashboard.tsx";
 import { RebalancePage } from "./pages/Rebalance.tsx";
+import { Navbar } from "./components/navbar.tsx";
 
 
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState("rebalance");
-  const [isConnected, setIsConnected] = useState(false);
+  const [currentPage, setCurrentPage] = useState("landing");
+  // const [isConnected, setIsConnected] = useState(false);
   
-  if (currentPage === "landing") {
-    return <LandingPage onNavigate={setCurrentPage} />;
-  }
-  else if (currentPage === "dashboard") {
-    return <Dashboard />;
-  }
-  else if (currentPage === "rebalance") {
-    return <RebalancePage />;
-  }
+   const renderPage = () => {
+    switch (currentPage) {
+      case "landing":
+        return <LandingPage onNavigate={setCurrentPage} />;
+      case "dashboard":
+        return <Dashboard />;
+      case "rebalance":
+        return <RebalancePage />;
+      default:
+        return <LandingPage onNavigate={setCurrentPage} />;
+    }
+  };
   return (
     <div className="min-h-screen bg-[#0F172A] text-white relative overflow-hidden">
       {/* Background Effects */}
@@ -41,10 +45,13 @@ export default function App() {
       />
 
       {/* Content */}
-      <div className="relative z-10">
-        {/* (isConnected ? <Dashboard /> : <LandingPage onNavigate={setCurrentPage} />) */}
-         <RebalancePage/>
+       <div className="relative z-10">
+        {currentPage !== "landing" && (
+          <Navbar currentPage={currentPage} onNavigate={setCurrentPage} />
+        )}
+        {renderPage()}
       </div>
+
   
     </div>
   );
