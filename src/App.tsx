@@ -1,10 +1,19 @@
 import { useState } from "react";
 import { LandingPage } from "./pages/LandingPage.tsx";
+import { Dashboard } from "./pages/Dashboard.tsx";
 
 
 
 export default function App() {
-
+  const [currentPage, setCurrentPage] = useState("landing");
+  const [isConnected, setIsConnected] = useState(false);
+  
+  if (currentPage === "landing") {
+    return <LandingPage onNavigate={setCurrentPage} />;
+  }
+  else if (currentPage === "dashboard") {
+    return <Dashboard />;
+  }
 
   return (
     <div className="min-h-screen bg-[#0F172A] text-white relative overflow-hidden">
@@ -30,7 +39,8 @@ export default function App() {
 
       {/* Content */}
       <div className="relative z-10">
-        <LandingPage onNavigate={(page) => console.log("Navigate to:", page)} />
+        (isConnected ? <Dashboard /> : <LandingPage onNavigate={setCurrentPage} />)
+
       </div>
   
     </div>

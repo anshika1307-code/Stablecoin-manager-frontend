@@ -47,6 +47,7 @@ export function LandingPage({ onNavigate }: LandingPageProps) {
               <div className="flex flex-wrap gap-4">
               
                  <Button
+                    onClick={() => onNavigate("dashboard")}
                   className="bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] text-white hover:shadow-2xl hover:shadow-[#3B82F6]/50 transition-all text-lg px-8"
                 >
                   Connect Wallet
