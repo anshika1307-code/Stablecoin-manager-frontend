@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { LandingPage } from "./pages/LandingPage.tsx";
 import { Dashboard } from "./pages/Dashboard.tsx";
+import { RebalancePage } from "./pages/Rebalance.tsx";
 
 
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState("landing");
+  const [currentPage, setCurrentPage] = useState("rebalance");
   const [isConnected, setIsConnected] = useState(false);
   
   if (currentPage === "landing") {
@@ -14,7 +15,9 @@ export default function App() {
   else if (currentPage === "dashboard") {
     return <Dashboard />;
   }
-
+  else if (currentPage === "rebalance") {
+    return <RebalancePage />;
+  }
   return (
     <div className="min-h-screen bg-[#0F172A] text-white relative overflow-hidden">
       {/* Background Effects */}
@@ -39,8 +42,8 @@ export default function App() {
 
       {/* Content */}
       <div className="relative z-10">
-        (isConnected ? <Dashboard /> : <LandingPage onNavigate={setCurrentPage} />)
-
+        {/* (isConnected ? <Dashboard /> : <LandingPage onNavigate={setCurrentPage} />) */}
+         <RebalancePage/>
       </div>
   
     </div>
