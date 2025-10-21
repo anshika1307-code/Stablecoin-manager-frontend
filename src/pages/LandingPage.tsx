@@ -1,6 +1,4 @@
 import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
-import { Button } from "../components/ui/button";
 import { WalletButton } from "../components/WalletButton";
 
 interface LandingPageProps {
@@ -46,14 +44,6 @@ export function LandingPage({ onNavigate }: LandingPageProps) {
               </p>
 
               <div className="flex flex-wrap gap-4">
-
-                {/* <Button
-                    onClick={() => onNavigate("dashboard")}
-                  className="bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] text-white hover:shadow-2xl hover:shadow-[#3B82F6]/50 transition-all text-lg px-8"
-                >
-                  Connect Wallet
-                  <ArrowRight className="ml-2 w-5 h-5" />
-                </Button> */}
                 <WalletButton
                   showArrow
                   onConnectedNavigate={() => onNavigate("dashboard")}

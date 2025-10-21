@@ -1,4 +1,4 @@
-import { Shield, Bell, Settings, User } from "lucide-react";
+import { Shield, Bell, Settings } from "lucide-react";
 import { Button } from "./ui/button";
 import { WalletButton } from "./WalletButton";
 
@@ -58,12 +58,6 @@ export function Navbar({ currentPage, onNavigate }: NavbarProps) {
             >
               <Settings className="w-5 h-5" />
             </Button>
-            {/* <Button
-              className="bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] text-white hover:shadow-lg hover:shadow-[#3B82F6]/50 transition-all"
-            >
-              <User className="w-4 h-4 mr-2" />
-              Connect Wallet
-            </Button> */}
             <WalletButton />
 
           </div>
