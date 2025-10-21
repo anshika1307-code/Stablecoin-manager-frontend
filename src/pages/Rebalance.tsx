@@ -1,12 +1,9 @@
 import { motion } from "framer-motion";
-import { ArrowRight, ArrowUpDown, CheckCircle, Info, RefreshCw } from "lucide-react";
+import { ArrowRight, ArrowUpDown, CheckCircle, RefreshCw } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { useState } from "react";
 import { TabsContent, TabsList, TabsTrigger, Tabs } from "../components/ui/tabs";
-import { Label } from "../components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { Input } from "../components/ui/input";
 
 export function RebalancePage() {
   const [isRebalancing, setIsRebalancing] = useState(false);
@@ -17,9 +14,7 @@ export function RebalancePage() {
   const [fromChain, setFromChain] = useState("Ethereum");
   const [toChain, setToChain] = useState("Ethereum");
   const [swapAmount, setSwapAmount] = useState("");
-  const [isSwapping, setIsSwapping] = useState(false);
-  const gasEstimateUSD = 1.25; // Example gas fee in USD
-  const tokenPriceUSD = 1.00;  // Price per token in USD
+
 
   const currentData = [
     { name: "USDT", value: 50, color: "#26A17B" },
@@ -58,13 +53,7 @@ export function RebalancePage() {
       setIsComplete(true);
     }, 3000);
   };
-  const handleManualSwap = () => {
-    setIsSwapping(true);
-    setTimeout(() => {
-      setIsSwapping(false);
-      setIsComplete(true);
-    }, 3000);
-  };
+
   const estimatedReceive = swapAmount ? (parseFloat(swapAmount) * 0.999).toFixed(2) : "0.00";
   const gasEstimate = fromChain === "Ethereum" ? "$12.50" : "$0.50";
 
