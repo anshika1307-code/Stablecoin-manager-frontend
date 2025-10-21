@@ -1,20 +1,25 @@
 import { motion } from "framer-motion";
-import { ArrowRight, CheckCircle, RefreshCw } from "lucide-react";
+import { ArrowRight, ArrowUpDown, CheckCircle, Info, RefreshCw } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { useState } from "react";
 import { TabsContent, TabsList, TabsTrigger, Tabs } from "../components/ui/tabs";
+import { Label } from "../components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { Input } from "../components/ui/input";
 
 export function RebalancePage() {
   const [isRebalancing, setIsRebalancing] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
 
   const [fromToken, setFromToken] = useState("USDT");
-
+  const [toToken, setToToken] = useState("USDC");
   const [fromChain, setFromChain] = useState("Ethereum");
-
+  const [toChain, setToChain] = useState("Ethereum");
   const [swapAmount, setSwapAmount] = useState("");
-
+  const [isSwapping, setIsSwapping] = useState(false);
+  const gasEstimateUSD = 1.25; // Example gas fee in USD
+  const tokenPriceUSD = 1.00;  // Price per token in USD
 
   const currentData = [
     { name: "USDT", value: 50, color: "#26A17B" },
@@ -53,7 +58,15 @@ export function RebalancePage() {
       setIsComplete(true);
     }, 3000);
   };
-
+  const handleManualSwap = () => {
+    setIsSwapping(true);
+    setTimeout(() => {
+      setIsSwapping(false);
+      setIsComplete(true);
+    }, 3000);
+  };
+  const estimatedReceive = swapAmount ? (parseFloat(swapAmount) * 0.999).toFixed(2) : "0.00";
+  const gasEstimate = fromChain === "Ethereum" ? "$12.50" : "$0.50";
 
 
   return (
@@ -266,8 +279,8 @@ export function RebalancePage() {
                       {change.change !== 0 && (
                         <div
                           className={`px-3 py-1 rounded-full text-sm ${change.change > 0
-                              ? "bg-[#8B5CF6]/20 text-[#8B5CF6]"
-                              : "bg-[#EF4444]/20 text-[#EF4444]"
+                            ? "bg-[#8B5CF6]/20 text-[#8B5CF6]"
+                            : "bg-[#EF4444]/20 text-[#EF4444]"
                             }`}
                         >
                           {change.change > 0 ? "+" : ""}
@@ -384,7 +397,75 @@ export function RebalancePage() {
                     className="w-full bg-white/5 border border-white/10 text-2xl rounded-lg p-3 h-14 text-white"
                   />
                 </div>
+                {/* Swap Icon */}
+                <div className="flex justify-center -my-2 relative z-10">
+                  <div className="bg-[#1a1f2e] p-3 rounded-full border-2 border-[#8B5CF6]/30">
+                    <ArrowUpDown className="w-5 h-5 text-[#8B5CF6]" />
+                  </div>
+                </div>
+
+                {/* To Token Section */}
+                <div className="space-y-4 mt-6 mb-6">
+                  <label className="block text-sm text-white/80">To</label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <select
+                        value={toToken}
+                        onChange={(e) => setToToken(e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-white"
+                      >
+                        <option value="">Select Token</option>
+                        {tokens.map((token) => (
+                          <option key={token.symbol} value={token.symbol}>
+                            {token.symbol} - {token.name}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-xs text-white/40 mt-1">
+                        Balance: {tokens.find((t) => t.symbol === toToken)?.balance ?? "0"}
+                      </p>
+                    </div>
+
+                    <div>
+                      <select
+                        value={toChain}
+                        onChange={(e) => setToChain(e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-white"
+                      >
+                        <option value="">Select Network</option>
+                        {chains.map((chain) => (
+                          <option key={chain} value={chain}>
+                            {chain}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-xs text-white/40 mt-1">Network</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-white/5 border border-white/10 rounded-lg p-4 text-2xl h-14 flex items-center text-white/60">
+                    {estimatedReceive ? `${estimatedReceive} ${toToken}` : "0.00"}
+                  </div>
+                </div>
+
+                {/* Swap Details */}
+                <div className="bg-white/5 rounded-lg p-4 space-y-2 mb-6 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-white/60">Exchange Rate</span>
+                    <span>1 {fromToken} = 0.999 {toToken}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-white/60">Estimated Gas Fee</span>
+                    <span className="text-[#3B82F6]">{gasEstimate}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-white/60">Slippage Tolerance</span>
+                    <span>0.5%</span>
+                  </div>
+                </div>
+
               </motion.div>
+
             </TabsContent>
 
 
