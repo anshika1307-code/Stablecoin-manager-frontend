@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { Button } from "../components/ui/button";
+import { WalletButton } from "../components/WalletButton";
 
 interface LandingPageProps {
   onNavigate: (page: string) => void;
@@ -32,28 +33,32 @@ export function LandingPage({ onNavigate }: LandingPageProps) {
               >
                 <span className="text-sm text-[#8B5CF6]">🚀 Powered by AI</span>
               </motion.div>
-              
+
               <h1 className="text-5xl lg:text-6xl mb-6 leading-tight">
                 <span className="text-glow-blue text-[#3B82F6]">Protect</span> Your Stablecoins.{" "}
                 <span className="text-glow-purple text-[#8B5CF6]">Optimize</span> Your Yield.{" "}
                 <span className="text-white">Stay Pegged.</span>
               </h1>
-              
+
               <p className="text-xl text-white/70 mb-8 leading-relaxed">
-                AI-powered stablecoin manager that monitors depegs, optimizes yield, 
+                AI-powered stablecoin manager that monitors depegs, optimizes yield,
                 and auto-rebalances portfolios across chains using smart swaps.
               </p>
 
               <div className="flex flex-wrap gap-4">
-              
-                 <Button
+
+                {/* <Button
                     onClick={() => onNavigate("dashboard")}
                   className="bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] text-white hover:shadow-2xl hover:shadow-[#3B82F6]/50 transition-all text-lg px-8"
                 >
                   Connect Wallet
                   <ArrowRight className="ml-2 w-5 h-5" />
-                </Button>
-                </div>
+                </Button> */}
+                <WalletButton
+                  showArrow
+                  onConnectedNavigate={() => onNavigate("dashboard")}
+                />
+              </div>
 
             </motion.div>
           </div>
