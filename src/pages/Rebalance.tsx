@@ -9,6 +9,13 @@ export function RebalancePage() {
   const [isRebalancing, setIsRebalancing] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
 
+  const [fromToken, setFromToken] = useState("USDT");
+
+  const [fromChain, setFromChain] = useState("Ethereum");
+
+  const [swapAmount, setSwapAmount] = useState("");
+
+
   const currentData = [
     { name: "USDT", value: 50, color: "#26A17B" },
     { name: "USDC", value: 30, color: "#2775CA" },
@@ -29,7 +36,16 @@ export function RebalancePage() {
     { coin: "DAI", from: 15, to: 15, change: 0, action: "No change" },
     { coin: "FDUSD", from: 5, to: 5, change: 0, action: "No change" },
   ];
-   const [activeTab, setActiveTab] = useState("ai-suggested");
+
+
+  const tokens = [
+    { symbol: "USDT", name: "Tether USD", balance: "45,202.50" },
+    { symbol: "USDC", name: "USD Coin", balance: "30,135.00" },
+  ];
+
+  const chains = ["Ethereum", "Polygon", "Arbitrum", "Optimism", "Base", "BSC"];
+
+  const [activeTab, setActiveTab] = useState("ai-suggested");
   const handleRebalance = () => {
     setIsRebalancing(true);
     setTimeout(() => {
@@ -37,6 +53,8 @@ export function RebalancePage() {
       setIsComplete(true);
     }, 3000);
   };
+
+
 
   return (
     <div className="min-h-screen pt-24 pb-12">
@@ -82,7 +100,7 @@ export function RebalancePage() {
             </div>
           </motion.div>
         ) : (
-           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-8 bg-white/5 border border-white/10">
               <TabsTrigger value="ai-suggested" className="data-[state=active]:bg-[#3B82F6] data-[state=active]:text-white">
                 AI Suggested
@@ -211,17 +229,15 @@ export function RebalancePage() {
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.3 + index * 0.1 }}
-                      className={`flex items-center justify-between p-4 rounded-lg ${
-                        change.change !== 0 ? "bg-white/5" : "bg-white/0"
-                      }`}
+                      className={`flex items-center justify-between p-4 rounded-lg ${change.change !== 0 ? "bg-white/5" : "bg-white/0"
+                        }`}
                     >
                       <div className="flex items-center gap-4">
                         <div
                           className="w-10 h-10 rounded-lg flex items-center justify-center"
                           style={{
-                            background: `${
-                              currentData.find((d) => d.name === change.coin)?.color
-                            }20`,
+                            background: `${currentData.find((d) => d.name === change.coin)?.color
+                              }20`,
                           }}
                         >
                           <span
@@ -249,11 +265,10 @@ export function RebalancePage() {
 
                       {change.change !== 0 && (
                         <div
-                          className={`px-3 py-1 rounded-full text-sm ${
-                            change.change > 0
+                          className={`px-3 py-1 rounded-full text-sm ${change.change > 0
                               ? "bg-[#8B5CF6]/20 text-[#8B5CF6]"
                               : "bg-[#EF4444]/20 text-[#EF4444]"
-                          }`}
+                            }`}
                         >
                           {change.change > 0 ? "+" : ""}
                           {change.change}%
@@ -306,13 +321,75 @@ export function RebalancePage() {
 
                 <div className="mt-6 p-4 rounded-lg bg-[#3B82F6]/10 border border-[#3B82F6]/30">
                   <p className="text-sm text-white/70">
-                    <span className="text-[#3B82F6]">Estimated Gas:</span> $2.50 • 
-                    <span className="text-[#8B5CF6]"> Slippage:</span> 0.1% • 
+                    <span className="text-[#3B82F6]">Estimated Gas:</span> $2.50 •
+                    <span className="text-[#8B5CF6]"> Slippage:</span> 0.1% •
                     <span className="text-white/50"> Time:</span> ~30 seconds
                   </p>
                 </div>
               </motion.div>
             </TabsContent>
+            {/* Manual Swap Tab */}
+            <TabsContent value="manual-swap" className="space-y-6">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white/5 rounded-2xl p-6 border border-white/10 max-w-2xl mx-auto"
+              >
+                <h2 className="text-xl mb-6">Manual Token Swap</h2>
+
+                {/* From Token Section */}
+                <div className="space-y-4 mb-6">
+                  <label className="block text-sm text-white/80">From</label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <select
+                        value={fromToken}
+                        onChange={(e) => setFromToken(e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-white"
+                      >
+                        <option value="">Select Token</option>
+                        {tokens.map((token) => (
+                          <option key={token.symbol} value={token.symbol}>
+                            {token.symbol} - {token.name}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-xs text-white/40 mt-1">
+                        Balance: {tokens.find((t) => t.symbol === fromToken)?.balance ?? "0"}
+                      </p>
+                    </div>
+
+                    <div>
+                      <select
+                        value={fromChain}
+                        onChange={(e) => setFromChain(e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-white"
+                      >
+                        <option value="">Select Network</option>
+                        {chains.map((chain) => (
+                          <option key={chain} value={chain}>
+                            {chain}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-xs text-white/40 mt-1">Network</p>
+                    </div>
+                  </div>
+
+                  <input
+                    type="number"
+                    placeholder="0.00"
+                    value={swapAmount}
+                    onChange={(e) => setSwapAmount(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 text-2xl rounded-lg p-3 h-14 text-white"
+                  />
+                </div>
+              </motion.div>
+            </TabsContent>
+
+
+
+
           </Tabs>
         )}
       </div>
