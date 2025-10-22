@@ -9,8 +9,13 @@ export default defineConfig({
         plugins: [['babel-plugin-react-compiler']],
       },
     }),
+    
      tailwindcss(),
   ],
+  define: {
+    "process.env": {},
+    global: "window",
+  },
 })
 
 

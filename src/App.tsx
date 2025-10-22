@@ -3,17 +3,11 @@ import { LandingPage } from "./pages/LandingPage.tsx";
 import { Dashboard } from "./pages/Dashboard.tsx";
 import { RebalancePage } from "./pages/Rebalance.tsx";
 import { Navbar } from "./components/navbar.tsx";
-import { WagmiProvider } from "wagmi";
-import { RainbowKitProvider, darkTheme } from "@rainbow-me/rainbowkit";
-import { config } from "./lib/wagmi.ts";
-import { queryClient } from "./lib/queryClient.ts";
-import { QueryClientProvider } from "@tanstack/react-query";
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState("landing");
-  // const [isConnected, setIsConnected] = useState(false);
   
-   const renderPage = () => {
+  const renderPage = () => {
     switch (currentPage) {
       case "landing":
         return <LandingPage onNavigate={setCurrentPage} />;
@@ -25,16 +19,8 @@ export default function App() {
         return <LandingPage onNavigate={setCurrentPage} />;
     }
   };
+
   return (
-     <WagmiProvider config={config}>
-         <QueryClientProvider client={queryClient}>
-          <RainbowKitProvider
-            theme={darkTheme({
-              accentColor: "hsl(217, 91%, 60%)",
-              accentColorForeground: "white",
-              borderRadius: "medium",
-            })}
-          >
     <div className="min-h-screen bg-[#0F172A] text-white relative overflow-hidden">
       {/* Background Effects */}
       <div className="fixed inset-0 pointer-events-none">
@@ -57,17 +43,12 @@ export default function App() {
       />
 
       {/* Content */}
-       <div className="relative z-10">
+      <div className="relative z-10">
         {currentPage !== "landing" && (
           <Navbar currentPage={currentPage} onNavigate={setCurrentPage} />
         )}
         {renderPage()}
       </div>
-
-  
     </div>
-    </RainbowKitProvider>
-    </QueryClientProvider>
-    </WagmiProvider>
   );
 }
