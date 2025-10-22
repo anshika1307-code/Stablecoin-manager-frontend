@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowRight, ArrowUpDown, CheckCircle, RefreshCw } from "lucide-react";
+import { ArrowRight, ArrowUpDown, CheckCircle, Info, RefreshCw } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { useState } from "react";
@@ -459,6 +459,12 @@ export function RebalancePage() {
                     <span className="text-white/60">Slippage Tolerance</span>
                     <span>0.5%</span>
                   </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-white/60">Route</span>
+                    <span className="text-xs">
+                      {fromChain === toChain ? "Direct Swap" : "Bridge + Swap"}
+                    </span>
+                  </div>
                   <div className="flex justify-between border-t border-white/10 pt-2 mt-2">
                     <span className="text-white/60">You’ll Receive (After Gas)</span>
                     <span>
@@ -477,6 +483,15 @@ export function RebalancePage() {
                     </span>
                   </div>
                 </div>
+                {/* Info Box */}
+                {fromChain !== toChain && (
+                  <div className="bg-[#3B82F6]/10 border border-[#3B82F6]/30 rounded-lg p-4 mb-6 flex gap-3">
+                    <Info className="w-5 h-5 text-[#3B82F6] shrink-0 mt-0.5" />
+                    <p className="text-sm text-white/70">
+                      Cross-chain swap detected. Your tokens will be bridged from {fromChain} to {toChain} and swapped in one transaction.
+                    </p>
+                  </div>
+                )}
                 <button
                   onClick={handleManualSwap}
                   disabled={isSwapping || !swapAmount || parseFloat(swapAmount) <= 0}
