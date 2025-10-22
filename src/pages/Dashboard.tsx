@@ -1,17 +1,45 @@
 import { motion } from "framer-motion";
 import { TrendingUp, ArrowUpRight, RefreshCw } from "lucide-react";
-// import { AsaAgent } from "../components/AsaAgent";
-// import { StabilityGauge } from "../components/StabilityGauge";
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip } from "recharts";
 import { Button } from "../components/ui/button";
+import { NexusInit } from "../components/NexusInit";
+import { useNexus } from "../contexts/NexusContext";
+import { useNexusBalance } from "../hooks/useNexusBalance";
+import { useMemo } from "react";
 
 export function Dashboard() {
-  const portfolioData = [
-    { name: "USDT", value: 45, color: "#26A17B" },
-    { name: "USDC", value: 35, color: "#2775CA" },
-    { name: "DAI", value: 15, color: "#F5AC37" },
-    { name: "FDUSD", value: 5, color: "#8B5CF6" },
-  ];
+  const { isInitialized } = useNexus();
+  const { balances, loading, refetch } = useNexusBalance();
+
+  const totalBalance = useMemo(() => {
+    if (!balances || balances.length === 0) return 0;
+    return balances.reduce((sum, asset) => sum + (asset.balanceInFiat || 0), 0);
+  }, [balances]);
+
+  const portfolioData = useMemo(() => {
+    if (!balances || balances.length === 0) {
+      return [
+        { name: "No Data", value: 100, color: "#6366F1" },
+      ];
+    }
+
+    const tokenColors: Record<string, string> = {
+      USDT: "#26A17B",
+      USDC: "#2775CA",
+      DAI: "#F5AC37",
+      ETH: "#627EEA",
+      MATIC: "#8247E5",
+      PYUSD: "#FF6F61",
+    };
+
+    return balances
+      .filter(asset => parseFloat(asset.balance) > 0)
+      .map((asset, index) => ({
+        name: asset.symbol,
+        value: parseFloat(asset.balance),
+        color: tokenColors[asset.symbol] || `hsl(${index * 60}, 70%, 50%)`,
+      }));
+  }, [balances]);
 
   const transactions = [
     { id: 1, type: "Rebalance", from: "USDT", to: "USDC", amount: "500", time: "2 hours ago", status: "success" },
@@ -39,10 +67,19 @@ export function Dashboard() {
             <h1 className="text-4xl mb-2">Portfolio Overview</h1>
             <p className="text-white/60">Monitor and manage your stablecoin portfolio</p>
           </div>
-          <Button className="bg-[#3B82F6] text-white hover:bg-[#3B82F6]/80 glow-blue">
-            <RefreshCw className="w-4 h-4 mr-2" />
+          <Button 
+            onClick={() => refetch()} 
+            disabled={!isInitialized || loading}
+            className="bg-[#3B82F6] text-white hover:bg-[#3B82F6]/80 glow-blue"
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
+        </div>
+
+        {/* Nexus Initialization */}
+        <div className="mb-6">
+          <NexusInit />
         </div>
 
         {/* Main Grid */}
@@ -57,15 +94,27 @@ export function Dashboard() {
               <div>
                 <h2 className="text-sm text-white/60 mb-1">Total Balance</h2>
                 <div className="text-4xl text-[#3B82F6] text-glow-blue">
-                  $100,450.00
+                  {loading ? (
+                    <span className="opacity-50">Loading...</span>
+                  ) : isInitialized && totalBalance > 0 ? (
+                    `$${totalBalance.toFixed(2)}`
+                  ) : (
+                    <span className="opacity-50">$0.00</span>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 mt-2">
-                  <TrendingUp className="w-4 h-4 text-[#8B5CF6]" />
-                  <span className="text-sm text-[#8B5CF6]">+2.3% ($2,250)</span>
-                  <span className="text-xs text-white/40">This month</span>
+                  {isInitialized ? (
+                    <>
+                      <TrendingUp className="w-4 h-4 text-[#8B5CF6]" />
+                      <span className="text-sm text-white/60">
+                        {balances.length} {balances.length === 1 ? 'Asset' : 'Assets'} Across Chains
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-xs text-white/40">Initialize Nexus to view balance</span>
+                  )}
                 </div>
               </div>
-              {/* <StabilityGauge score={94} size={140} /> */}
             </div>
 
             <div className="grid md:grid-cols-2 gap-6">
@@ -97,7 +146,7 @@ export function Dashboard() {
                         style={{ backgroundColor: item.color }}
                       />
                       <span className="text-sm text-white/70">{item.name}</span>
-                      <span className="text-sm text-white/50">{item.value}%</span>
+                      <span className="text-sm text-white/50">{item.value}</span>
                     </div>
                   ))}
                 </div>
