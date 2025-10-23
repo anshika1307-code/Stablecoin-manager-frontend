@@ -1,6 +1,6 @@
 import { getDefaultConfig } from '@rainbow-me/rainbowkit';
-// import { mainnet, base, arbitrum, polygon} from 'wagmi/chains';
 import {
+  mainnet, base, arbitrum, polygon,
   sepolia,       
   baseSepolia,   
   arbitrumSepolia,
@@ -11,7 +11,6 @@ import {
 export const config = getDefaultConfig({
   appName: 'StableGuard AI',
   projectId: import.meta.env.VITE_WALLETCONNECT_PROJECT_ID,
-//   chains: [mainnet, arbitrum, polygon, base],
-    chains: [sepolia, baseSepolia, arbitrumSepolia, polygonAmoy, optimismSepolia],
+    chains: [mainnet, arbitrum, polygon, base, sepolia, baseSepolia, arbitrumSepolia, polygonAmoy, optimismSepolia],
   ssr: false,
 });
