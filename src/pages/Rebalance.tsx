@@ -4,6 +4,7 @@ import { Button } from "../components/ui/button";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { useState } from "react";
 import { TabsContent, TabsList, TabsTrigger, Tabs } from "../components/ui/tabs";
+import { Bridge } from "../components/Bridge";
 
 export function RebalancePage() {
   const [isRebalancing, setIsRebalancing] = useState(false);
@@ -499,15 +500,16 @@ export function RebalancePage() {
                 >
                   {isSwapping ? "Swapping..." : `Swap ${fromToken} for ${toToken}`}
                 </button>
-
+                <Bridge/>
               </motion.div>
 
             </TabsContent>
 
-
+             
 
 
           </Tabs>
+          
         )}
       </div>
     </div>
