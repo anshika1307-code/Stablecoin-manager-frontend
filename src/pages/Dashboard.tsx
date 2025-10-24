@@ -33,10 +33,11 @@ export function Dashboard() {
     };
 
     return balances
-      .filter(asset => parseFloat(asset.balance) > 0)
+      .filter(asset => parseFloat(String(asset.balanceInFiat)) > 0)
       .map((asset, index) => ({
         name: asset.symbol,
-        value: parseFloat(asset.balance),
+        value: parseFloat(String(asset.balanceInFiat)),
+        token: parseFloat(String(asset.balance)),
         color: tokenColors[asset.symbol] || `hsl(${index * 60}, 70%, 50%)`,
       }));
   }, [balances]);
@@ -146,7 +147,8 @@ export function Dashboard() {
                         style={{ backgroundColor: item.color }}
                       />
                       <span className="text-sm text-white/70">{item.name}</span>
-                      <span className="text-sm text-white/50">{item.value}</span>
+                      <span className="text-sm text-white/50">${item.value}</span>
+                      <span className="text-sm text-white/40">({((item.value / totalBalance) * 100).toFixed(1)}%)</span>
                     </div>
                   ))}
                 </div>
