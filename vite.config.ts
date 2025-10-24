@@ -1,8 +1,8 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import inject from '@rollup/plugin-inject'  
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react({
@@ -10,16 +10,19 @@ export default defineConfig({
         plugins: [['babel-plugin-react-compiler']],
       },
     }),
-    
-     tailwindcss(),
+    tailwindcss(),
+
+    inject({
+      Buffer: ['buffer', 'Buffer'],
+    }),
   ],
+
   define: {
-    "process.env": {},
-    global: "window",
+    'process.env': {},
+    global: 'window',
+  },
+
+  optimizeDeps: {
+    include: ['buffer'], 
   },
 })
-
-
-
-
-
