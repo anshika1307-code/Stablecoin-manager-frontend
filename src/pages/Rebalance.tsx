@@ -1,12 +1,65 @@
 import { motion } from "framer-motion";
 import { ArrowRight, ArrowUpDown, CheckCircle, Info, RefreshCw } from "lucide-react";
-import { Button } from "../components/ui/button";
-import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { useState } from "react";
+import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
+import { useNexusBridge } from "../hooks/useNexusBridge";
+import { useNexusExecute } from "../hooks/useNexusExecute";
+import { ethers } from "ethers";
+import { Button } from "../components/ui/button";
 import { TabsContent, TabsList, TabsTrigger, Tabs } from "../components/ui/tabs";
-import { Bridge } from "../components/Bridge";
 
+// Token addresses per chain
+const TOKEN_ADDRESSES: Record<number, Record<string, string>> = {
+  11155111: { // Sepolia
+    USDC: '0x72E4AF81B73E7fc29156f6FfA8E8413E4385b2D8',
+    USDT: '0x3d90917bBB02bb156B2eD7BEDb20d84d7E49b135',
+    WETH: '0x3981A8CdB4d2C532FF4eB76a4A0d51CAd74b3b5a',
+  },
+  84532: { // Base Sepolia
+    USDC: '0xF79dd583eDb09c80a0b2FF0cd1B274F1Ec361cA4',
+    USDT: '0x55e877aEF97A918D3c7f729a691F7DC9831A5695',
+  },
+};
+
+// Router addresses per chain
+const ROUTER_ADDRESSES: Record<number, string> = {
+  11155111: '0x60aE531D9448445fC6d9Da4f4B0e87940711126d',
+  84532: '0xBF4082e927886df91a996EbEF07cd4E85B03C300',
+};
+
+const MOCK_ROUTER_ABI = [
+  {
+    name: 'exactInputSingle',
+    type: 'function',
+    stateMutability: 'payable',
+    inputs: [
+      {
+        name: 'params',
+        type: 'tuple',
+        components: [
+          { name: 'tokenIn', type: 'address' },
+          { name: 'tokenOut', type: 'address' },
+          { name: 'fee', type: 'uint24' },
+          { name: 'recipient', type: 'address' },
+          { name: 'amountIn', type: 'uint256' },
+          { name: 'amountOutMinimum', type: 'uint256' },
+          { name: 'sqrtPriceLimitX96', type: 'uint160' },
+        ],
+      },
+    ],
+    outputs: [{ name: 'amountOut', type: 'uint256' }],
+  },
+] as const;
+const ERC20_ABI = [
+  "function faucet() external",
+  "function balanceOf(address) view returns (uint256)",
+  "function decimals() view returns (uint8)",
+  "function approve(address, uint256) returns (bool)",
+];
 export function RebalancePage() {
+  const { bridge, bridging } = useNexusBridge();
+  const { execute, executing } = useNexusExecute();
+
   const [isRebalancing, setIsRebalancing] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
 
@@ -16,8 +69,11 @@ export function RebalancePage() {
   const [toChain, setToChain] = useState("Ethereum");
   const [swapAmount, setSwapAmount] = useState("");
   const [isSwapping, setIsSwapping] = useState(false);
-  const gasEstimateUSD = 1.25; // Example gas fee in USD
-  const tokenPriceUSD = 1.00;  // Price per token in USD
+  const [txHash, setTxHash] = useState("");
+  const [swapError, setSwapError] = useState("");
+
+  const gasEstimateUSD = 1.25;
+  const tokenPriceUSD = 1.00;
 
   const currentData = [
     { name: "USDT", value: 50, color: "#26A17B" },
@@ -40,15 +96,21 @@ export function RebalancePage() {
     { coin: "FDUSD", from: 5, to: 5, change: 0, action: "No change" },
   ];
 
-
   const tokens = [
     { symbol: "USDT", name: "Tether USD", balance: "45,202.50" },
     { symbol: "USDC", name: "USD Coin", balance: "30,135.00" },
   ];
 
-  const chains = ["Ethereum", "Polygon", "Arbitrum", "Optimism", "Base", "BSC"];
+  const chains = [
+    { name: "Ethereum", id: 11155111 },
+    { name: "Polygon", id: 80002 },
+    { name: "Arbitrum", id: 421614 },
+    { name: "Optimism", id: 11155420 },
+    { name: "Base", id: 84532 },
+  ];
 
   const [activeTab, setActiveTab] = useState("ai-suggested");
+
   const handleRebalance = () => {
     setIsRebalancing(true);
     setTimeout(() => {
@@ -56,32 +118,123 @@ export function RebalancePage() {
       setIsComplete(true);
     }, 3000);
   };
-  const handleManualSwap = () => {
-    setIsSwapping(true);
-    setTimeout(() => {
-      setIsSwapping(false);
-      setIsComplete(true);
-    }, 3000);
+
+  const getChainId = (chainName: string): number => {
+    return chains.find(c => c.name === chainName)?.id || 11155111;
   };
+
+  const handleManualSwap = async () => {
+    if (!swapAmount || parseFloat(swapAmount) <= 0) {
+      setSwapError('Please enter a valid amount');
+      return;
+    }
+
+    setIsSwapping(true);
+    setSwapError('');
+    setTxHash('');
+
+    try {
+      const fromChainId = getChainId(fromChain);
+      const toChainId = getChainId(toChain);
+      const isCrossChain = fromChain !== toChain;
+
+      // Convert amount to BigInt
+      const decimals = fromToken === 'USDC' || fromToken === 'USDT' ? 6 : 18;
+      const amountInBigInt = BigInt(Math.floor(parseFloat(swapAmount) * 10 ** decimals));
+
+      if (isCrossChain) {
+        // Step 1: Bridge tokens to destination chain
+        console.log('Cross-chain swap detected. Bridging first...');
+
+        const bridgeParams = {
+          token: fromToken as any,
+          amount: parseFloat(swapAmount),
+          chainId: toChainId as any,
+        };
+
+        const bridgeResult = await bridge(bridgeParams);
+
+        if (!bridgeResult?.success) {
+          throw new Error('Bridge failed');
+        }
+
+        console.log('Bridge successful, now executing swap on destination chain...');
+      }
+
+      // Step 2: Execute swap (either on same chain or after bridge)
+      const targetChainId = isCrossChain ? toChainId : fromChainId;
+      const tokenInAddress = TOKEN_ADDRESSES[targetChainId]?.[fromToken];
+      const tokenOutAddress = TOKEN_ADDRESSES[targetChainId]?.[toToken];
+      const routerAddress = ROUTER_ADDRESSES[targetChainId];
+
+      if (!tokenInAddress || !tokenOutAddress || !routerAddress) {
+        throw new Error('Token or router not configured for selected chain');
+      }
+
+      const executeParams = {
+        toChainId: targetChainId as any,
+        contractAddress: routerAddress as `0x${string}`,
+        contractAbi: MOCK_ROUTER_ABI,
+        functionName: 'exactInputSingle',
+        buildFunctionParams: (
+          token: string,
+          amt: string,
+          chainId: number,
+          userAddress: `0x${string}`
+        ) => {
+          const minAmountOut = BigInt(1);
+          return {
+            functionParams: [
+              {
+                tokenIn: tokenInAddress as `0x${string}`,
+                tokenOut: tokenOutAddress as `0x${string}`,
+                fee: 3000,
+                recipient: userAddress,
+                amountIn: amountInBigInt,
+                amountOutMinimum: minAmountOut,
+                sqrtPriceLimitX96: BigInt(0),
+              },
+            ],
+          };
+        },
+        tokenApproval: {
+          token: fromToken as any,
+          amount: amountInBigInt.toString(),
+        },
+        waitForReceipt: true,
+        requiredConfirmations: 1,
+      };
+
+      const swapResult = await execute(executeParams);
+
+      if (swapResult?.transactionHash) {
+        setTxHash(swapResult.transactionHash);
+        setIsComplete(true);
+      }
+    } catch (error: any) {
+      console.error('Swap error:', error);
+      setSwapError(error.message || 'Swap failed');
+    } finally {
+      setIsSwapping(false);
+    }
+  };
+
   const estimatedReceive = swapAmount ? (parseFloat(swapAmount) * 0.999).toFixed(2) : "0.00";
   const gasEstimate = fromChain === "Ethereum" ? "$12.50" : "$0.50";
-
 
   return (
     <div className="min-h-screen pt-24 pb-12">
       <div className="container mx-auto px-6">
-        {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-['Space_Grotesk'] mb-2">Portfolio Rebalance</h1>
+          <h1 className="text-4xl font-bold mb-2">Portfolio Rebalance</h1>
           <p className="text-white/60">Optimize your stablecoin allocation for maximum stability</p>
         </div>
 
         {isComplete ? (
-          /* Success State */
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="glass rounded-2xl p-12 border-glow text-center"
+            className="glass rounded-2xl p-12 border-glow  text-center"
           >
             <motion.div
               initial={{ scale: 0 }}
@@ -91,36 +244,39 @@ export function RebalancePage() {
             >
               <CheckCircle className="w-16 h-16 text-[#00FFAE]" />
             </motion.div>
-            <h2 className="text-3xl font-['Space_Grotesk'] mb-4">Rebalance Complete!</h2>
+            <h2 className="text-3xl font-bold mb-4">Swap Complete!</h2>
             <p className="text-white/70 mb-8 max-w-md mx-auto">
-              Successfully swapped 10 USDT → 10 USDC. Your portfolio is now optimized.
+              Successfully swapped {swapAmount} {fromToken} → {toToken}
+              {fromChain !== toChain && ` (bridged from ${fromChain} to ${toChain})`}
             </p>
+            {txHash && (
+              <p className="text-sm text-white/50 mb-6 break-all">
+                Transaction: {txHash}
+              </p>
+            )}
             <div className="flex gap-4 justify-center">
               <Button
-                onClick={() => setIsComplete(false)}
-                className="border-[#00FFFF] text-[#00FFFF] hover:bg-[#00FFFF]/10"
+                onClick={() => {
+                  setIsComplete(false);
+                  setSwapAmount('');
+                  setTxHash('');
+                }}
+                className="bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] text-white"
               >
-                View Portfolio
-              </Button>
-              <Button
-                onClick={() => setIsComplete(false)}
-                className="bg-gradient-to-r from-[#00FFFF] to-[#00FFAE] text-[#0D0F16]"
-              >
-                Done
+                Make Another Swap
               </Button>
             </div>
           </motion.div>
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-8 bg-white/5 border border-white/10">
-              <TabsTrigger value="ai-suggested" className="data-[state=active]:bg-[#3B82F6] data-[state=active]:text-white">
+              <TabsTrigger value="ai-suggested" className="data-[state=active]:bg-[#3B82F6]">
                 AI Suggested
               </TabsTrigger>
-              <TabsTrigger value="manual-swap" className="data-[state=active]:bg-[#8B5CF6] data-[state=active]:text-white">
+              <TabsTrigger value="manual-swap" className="data-[state=active]:bg-[#8B5CF6]">
                 Manual Swap
               </TabsTrigger>
             </TabsList>
-
             {/* AI Suggested Rebalance Tab */}
             <TabsContent value="ai-suggested" className="space-y-6">
               {/* Comparison View */}
@@ -339,7 +495,6 @@ export function RebalancePage() {
                 </div>
               </motion.div>
             </TabsContent>
-            {/* Manual Swap Tab */}
             <TabsContent value="manual-swap" className="space-y-6">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -348,7 +503,6 @@ export function RebalancePage() {
               >
                 <h2 className="text-xl mb-6">Manual Token Swap</h2>
 
-                {/* From Token Section */}
                 <div className="space-y-4 mb-6">
                   <label className="block text-sm text-white/80">From</label>
                   <div className="grid grid-cols-2 gap-4">
@@ -376,10 +530,9 @@ export function RebalancePage() {
                         onChange={(e) => setFromChain(e.target.value)}
                         className="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-white"
                       >
-                        <option value="">Select Network</option>
                         {chains.map((chain) => (
-                          <option key={chain} value={chain}>
-                            {chain}
+                          <option key={chain.name} value={chain.name}>
+                            {chain.name}
                           </option>
                         ))}
                       </select>
@@ -395,14 +548,13 @@ export function RebalancePage() {
                     className="w-full bg-white/5 border border-white/10 text-2xl rounded-lg p-3 h-14 text-white"
                   />
                 </div>
-                {/* Swap Icon */}
+
                 <div className="flex justify-center -my-2 relative z-10">
                   <div className="bg-[#1a1f2e] p-3 rounded-full border-2 border-[#8B5CF6]/30">
                     <ArrowUpDown className="w-5 h-5 text-[#8B5CF6]" />
                   </div>
                 </div>
 
-                {/* To Token Section */}
                 <div className="space-y-4 mt-6 mb-6">
                   <label className="block text-sm text-white/80">To</label>
                   <div className="grid grid-cols-2 gap-4">
@@ -430,10 +582,9 @@ export function RebalancePage() {
                         onChange={(e) => setToChain(e.target.value)}
                         className="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-white"
                       >
-                        <option value="">Select Network</option>
                         {chains.map((chain) => (
-                          <option key={chain} value={chain}>
-                            {chain}
+                          <option key={chain.name} value={chain.name}>
+                            {chain.name}
                           </option>
                         ))}
                       </select>
@@ -446,7 +597,6 @@ export function RebalancePage() {
                   </div>
                 </div>
 
-                {/* Swap Details */}
                 <div className="bg-white/5 rounded-lg p-4 space-y-2 mb-6 text-sm">
                   <div className="flex justify-between">
                     <span className="text-white/60">Exchange Rate</span>
@@ -466,25 +616,8 @@ export function RebalancePage() {
                       {fromChain === toChain ? "Direct Swap" : "Bridge + Swap"}
                     </span>
                   </div>
-                  <div className="flex justify-between border-t border-white/10 pt-2 mt-2">
-                    <span className="text-white/60">You’ll Receive (After Gas)</span>
-                    <span>
-                      {(Number(estimatedReceive) - (gasEstimateUSD / tokenPriceUSD || 0)).toFixed(6)} {toToken}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between">
-                    <span className="text-white/60">≈ In USD</span>
-                    <span>
-                      $
-                      {(
-                        (Number(estimatedReceive) - (gasEstimateUSD / tokenPriceUSD || 0)) *
-                        tokenPriceUSD
-                      ).toFixed(2)}
-                    </span>
-                  </div>
                 </div>
-                {/* Info Box */}
+
                 {fromChain !== toChain && (
                   <div className="bg-[#3B82F6]/10 border border-[#3B82F6]/30 rounded-lg p-4 mb-6 flex gap-3">
                     <Info className="w-5 h-5 text-[#3B82F6] shrink-0 mt-0.5" />
@@ -493,23 +626,30 @@ export function RebalancePage() {
                     </p>
                   </div>
                 )}
+
+                {swapError && (
+                  <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 mb-6">
+                    <p className="text-sm text-red-400">{swapError}</p>
+                  </div>
+                )}
+
                 <button
                   onClick={handleManualSwap}
-                  disabled={isSwapping || !swapAmount || parseFloat(swapAmount) <= 0}
+                  disabled={isSwapping || bridging || !swapAmount || parseFloat(swapAmount) <= 0}
                   className="w-full bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] text-white py-3 rounded-lg font-medium hover:shadow-2xl hover:shadow-[#8B5CF6]/50 transition-all disabled:opacity-50"
                 >
-                  {isSwapping ? "Swapping..." : `Swap ${fromToken} for ${toToken}`}
+                  {isSwapping || bridging ? (
+                    <>
+                      <RefreshCw className="w-5 h-5 inline mr-2 animate-spin" />
+                      {bridging ? 'Bridging...' : 'Swapping...'}
+                    </>
+                  ) : (
+                    `Swap ${fromToken} for ${toToken}`
+                  )}
                 </button>
-                <Bridge/>
               </motion.div>
-
             </TabsContent>
-
-             
-
-
           </Tabs>
-          
         )}
       </div>
     </div>
