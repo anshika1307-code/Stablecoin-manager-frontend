@@ -21,7 +21,9 @@ export function Navbar({ currentPage, onNavigate }: NavbarProps) {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
       if (currentScrollY < 0) return; // Ignore negative scrolls
-      setScrollingUp(currentScrollY < lastScrollY.current || currentScrollY < 50);
+      setScrollingUp(
+        currentScrollY < lastScrollY.current || currentScrollY < 50
+      );
       lastScrollY.current = currentScrollY;
     };
 
@@ -41,11 +43,15 @@ export function Navbar({ currentPage, onNavigate }: NavbarProps) {
             onClick={() => onNavigate("landing")}
             className="flex items-center gap-2 group"
           >
-            <div className="relative">
-              <Shield className="w-8 h-8 text-[#3B82F6] glow-blue-strong" />
+            <div className="relative w-10 h-10">
+              <img
+                src="/logo.png"
+                alt="Logo"
+                className="w-full h-full object-contain"
+              />
               <div className="absolute inset-0 bg-[#3B82F6] opacity-20 blur-xl rounded-full" />
             </div>
-            <span className="tracking-tight">LOGO</span>
+            <span className="tracking-tight font-serif">STABLEFLOW</span>
           </button>
 
           <div className="hidden md:flex items-center gap-1">
