@@ -3,8 +3,8 @@ import { useNexusBridge } from '../hooks/useNexusBridge';
 import { useNexus } from '../contexts/NexusContext';
 import { Button } from './ui/button';
 import { Loader2, ArrowRightLeft } from 'lucide-react';
-import type { BridgeParams } from '@avail-project/nexus-core';
-
+import type { BridgeParams, ExecuteParams } from '@avail-project/nexus-core';
+import type {BridgeAndExecuteParams, BridgeAndExecuteResult, BridgeAndExecuteSimulationResult} from '@avail-project/nexus-core';
 const SUPPORTED_CHAINS = [
   { id: 11155111, name: 'Sepolia' },
   { id: 84532, name: 'Base Sepolia' },
@@ -48,6 +48,7 @@ export const Bridge = () => {
       alert('Bridge successful!');
     }
   };
+
 
   if (!isInitialized) {
     return (
@@ -96,7 +97,7 @@ export const Bridge = () => {
           <label className="block text-sm text-white/60 mb-2">Destination Chain</label>
           <select
             value={destinationChain}
-            onChange={(e) => setDestinationChain(parseInt(e.target.value))}
+            onChange={(e) => setDestinationChain(84532)}
             className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white"
           >
             {SUPPORTED_CHAINS.map((chain) => (
