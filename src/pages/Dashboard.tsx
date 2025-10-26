@@ -32,6 +32,13 @@ export function Dashboard() {
     USDC: 1.00,
     USDT: 1.00,
     DAI: 1.00,
+    BUSD: 1.00,
+    FDUSD: 1.00,
+    TUSD: 1.00,
+    USDP: 1.00,
+    PYUSD: 1.00,
+    USDD: 1.00,
+    GUSD: 1.00,
     WETH: 2500.00,
   };
 

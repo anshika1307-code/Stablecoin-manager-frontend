@@ -100,7 +100,7 @@ export function RebalancePage() {
   const { execute, simulateExecute } = useNexusExecute();
 
   // Fetch balances using our custom hook
-  const { loading: balancesLoading, refetch, getFormattedBalance } = useTokenBalances(address);
+  const { loading: balancesLoading, refetch, getFormattedBalance,balances } = useTokenBalances(address);
 
   const [isComplete, setIsComplete] = useState(false);
   const [fromToken, setFromToken] = useState<TokenSymbol>("USDC");
@@ -128,7 +128,35 @@ const [isRebalancing, setIsRebalancing] = useState(false);
   const gasEstimateUSD = 1.25;
   const tokenPriceUSD = 1.0;
 
+  interface TokenData {
+  token: string;
+  symbol: string;
+  name: string;
+  balance: string;
+  balanceRaw: string;
+  decimals: number;
+  chainId: number;
+  chainName: string;
+  address: string;
+}
 
+interface BalancePayload {
+  usdc_balance: number;
+  usdt_balance: number;
+  dai_balance: number;
+  fdusd_balance: number;
+  busd_balance: number;
+  tusd_balance: number;
+  usdp_balance: number;
+  pyusd_balance: number;
+  usdd_balance: number;
+  gusd_balance: number;
+  quote_amount: number;
+}
+
+
+
+  console.log('balances:', balances);
   const [activeTab, setActiveTab] = useState("ai-suggested");
 
   // Convert allocation data to chart format
@@ -142,6 +170,7 @@ const [isRebalancing, setIsRebalancing] = useState(false);
       .sort((a, b) => b.value - a.value);
   };
 
+  
   // Calculate changes from swap_plan data
   const calculateChanges = () => {
     if (!rebalanceData) return [];
@@ -226,23 +255,35 @@ const [isRebalancing, setIsRebalancing] = useState(false);
     });
   };
 
-  // Single request without retries
+  type Token = {
+  token: string;
+  symbol: string;
+  name: string;
+  balance: string;
+  balanceRaw: string;
+  decimals: number;
+  chainId: number;
+  chainName: string;
+  address: string;
+};
+
+type Payload = Record<string, number>;
+
+function createBalancePayload(balances: Token[]): Payload {
+  return balances.reduce((acc, token) => {
+    const key = `${token.symbol.toLowerCase()}_balance`;
+    acc[key] = parseFloat(token.balance) || 0; // ensures 0 if balance is "0" or invalid
+    return acc;
+  }, {} as Payload);
+}
+
+  // Single request 
+  // without retries
   const fetchRebalancePreview = async (): Promise<void> => {
     const url = "https://ethonline2025.onrender.com/rebalance/preview";
 
-    const payload = {
-      usdc_balance: 1200,
-      usdt_balance: 800,
-      dai_balance: 500,
-      fdusd_balance: 300,
-      busd_balance: 250,
-      tusd_balance: 150,
-      usdp_balance: 200,
-      pyusd_balance: 100,
-      usdd_balance: 400,
-      gusd_balance: 100,
-      quote_amount: 1000,
-    };
+   const payload = createBalancePayload(balances);
+
 
     try {
       setIsLoading(true);
