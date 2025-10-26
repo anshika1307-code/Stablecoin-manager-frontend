@@ -1,75 +1,72 @@
-# React + TypeScript + Vite
+# 🪙 Stablecoin Manager
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A powerful, AI-assisted frontend for managing stablecoin transactions, swaps, and rebalancing — built for the next generation of DeFi.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 🚀 About
 
-## React Compiler
+**Stablecoin Manager** is an intelligent web platform designed to simplify and automate stablecoin management.  
+It provides a seamless interface for **swapping between stablecoins**, **analyzing portfolio distribution**, and **getting AI-based optimization insights**.
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+This project integrates:
+- **Nexus** for on-chain **swap functionality**.
+- **ASI uAgents** for **AI-driven recommendations**.
+- **MockUniswapRouter** for **test token swap simulations** during development and testing.
 
-Note: This will impact Vite dev & build performances.
+> The vision: an autonomous, AI-powered system that can optimize yields, rebalance portfolios, and guide users toward the most efficient stablecoin strategies.
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## ⚙️ Key Features
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### 🔁 Swap Functionality
+- Built-in **Nexus Integration** for seamless swaps between supported stablecoins.
+- Uses **realistic mock data** from **MockUniswapRouter** to simulate transactions for testing.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### 🤖 AI Suggestions (ASI Integration)
+- Utilizes **AI agents** to provide data-driven recommendations.
+- Suggests **optimal swap pairs**, **rebalance triggers**, and **stablecoin ratio adjustments**.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+### 🧩 Modular Design
+- Clean separation between **frontend**, **backend**, and **AI modules**.
+- Ready for multi-chain expansion and additional DeFi protocol support.
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+---
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## 🧭 Future Scope
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+### 💹 Yield Generation AI
+Integrate advanced AI algorithms to suggest **yield-generating strategies** for different stablecoins based on market conditions, protocol APYs, and volatility indicators.
+
+### ⚖️ Auto Rebalancing
+Enable **AI-based automatic rebalancing**, where the system executes periodic swaps to maintain the ideal portfolio distribution dynamically.
+
+---
+
+## 🧱 Project Repositories
+
+| Module | Repository Link |
+|--------|----------------|
+| 🖥️ Frontend | [Stablecoin Manager Frontend](https://github.com/anshika1307-code/Stablecoin-manager-frontend) |
+| ⚙️ Backend | [Stablecoin Manager Backend](https://github.com/anshika1307-code/Stablecoin-manager-backend) |
+| 🌐 AI Agent API | [ETHOnline 2025 Repo](https://github.com/Bhanu-Sai-Enamala/ethOnline2025) |
+
+---
+
+## 🧰 Tech Stack
+
+- **Frontend:** Next.js, TypeScript, TailwindCSS
+- **Backend:** Node.js, Express
+- **Blockchain:** Ethereum / Testnets
+- **Integration:** Nexus SDK
+- **AI & Agents:** ASI uAgents
+- **Testing:** MockUniswapRouter
+
+---
+
+## 🌟 Vision
+
+To create a **self-sustaining DeFi ecosystem** where users no longer need to manually track APYs or swap rates — the **AI handles portfolio optimization**, ensuring maximum yield and minimal risk.
+
+> “Stablecoin Manager is more than a dashboard — it’s the future of intelligent DeFi management.”
