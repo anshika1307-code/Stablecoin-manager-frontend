@@ -9,6 +9,7 @@ interface NexusContextType {
   isInitialized: boolean;
   isInitializing: boolean;
   error: string | null;
+  address: string | undefined; // Added
   initialize: () => Promise<void>;
   deinitialize: () => void;
 }
@@ -16,7 +17,7 @@ interface NexusContextType {
 const NexusContext = createContext<NexusContextType | undefined>(undefined);
 
 export const NexusProvider = ({ children }: { children: ReactNode }) => {
-  const { connector, isConnected } = useAccount();
+  const { connector, isConnected, address } = useAccount(); // Get address from wagmi
   const [sdk, setSdk] = useState<NexusSDK | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
@@ -75,6 +76,7 @@ export const NexusProvider = ({ children }: { children: ReactNode }) => {
         isInitialized,
         isInitializing,
         error,
+        address, // Added
         initialize,
         deinitialize,
       }}
