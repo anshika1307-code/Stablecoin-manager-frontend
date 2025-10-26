@@ -61,7 +61,7 @@ Enable **AI-based automatic rebalancing**, where the system executes periodic sw
 - **Blockchain:** Ethereum / Testnets
 - **Integration:** Nexus SDK
 - **AI & Agents:** ASI uAgents
-- **Testing:** MockUniswapRouter
+- **Testing:** MockUniswapRouter (Hardhat)
 
 ---
 
