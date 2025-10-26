@@ -3,25 +3,55 @@ import { TOKEN_CONFIG, type TokenSymbol, type ChainId } from './tokenBalanceUtil
 // Exchange rates matching your mock router configuration
 // Rate calculation: (amountIn * rate) / 10000 = amountOut
 const EXCHANGE_RATES: Record<string, number> = {
-  // USDC pairs (6 decimals)
-  'USDC-USDT': 9995,              // USDC → USDT (1:0.9995)
-  'USDC-WETH': 4000000000000,     // USDC → WETH (0.0004 with decimals)
-  'USDC-DAI': 10000000000000,     // USDC → DAI (1:1 with decimals)
-  
-  // USDT pairs (6 decimals)
-  'USDT-USDC': 10005,             // USDT → USDC (1:1.0005)
-  'USDT-WETH': 4000000000000,     // USDT → WETH (0.0004 with decimals)
-  'USDT-DAI': 10000000000000,     // USDT → DAI (1:1 with decimals)
-  
-  // WETH pairs (18 decimals)
-  'WETH-USDC': 25000,             // WETH → USDC (2500 with decimals)
-  'WETH-USDT': 25000,             // WETH → USDT (2500 with decimals)
-  'WETH-DAI': 25000000000000,     // WETH → DAI (2500:1 with decimals)
-  
-  // DAI pairs (18 decimals)
-  'DAI-USDC': 10000,              // DAI → USDC (1:1 with decimals)
-  'DAI-USDT': 10000,              // DAI → USDT (1:1 with decimals)
-  'DAI-WETH': 4000000000000,      // DAI → WETH (0.0004 with decimals)
+  // ===== Existing =====
+  'USDC-USDT': 9995,
+  'USDC-WETH': 4000000000000,
+  'USDC-DAI': 10000000000000,
+
+  'USDT-USDC': 10005,
+  'USDT-WETH': 4000000000000,
+  'USDT-DAI': 10000000000000,
+
+  'WETH-USDC': 25000,
+  'WETH-USDT': 25000,
+  'WETH-DAI': 25000000000000,
+
+  'DAI-USDC': 10000,
+  'DAI-USDT': 10000,
+  'DAI-WETH': 4000000000000,
+
+  // ===== New Stables =====
+  // Stable ↔ Stable (1:1)
+  'FDUSD-USDC': 10000, 'FDUSD-USDT': 10000, 'FDUSD-DAI': 10000, 'FDUSD-BUSD': 10000, 'FDUSD-TUSD': 10000, 'FDUSD-USDP': 10000, 'FDUSD-PYUSD': 10000, 'FDUSD-USDD': 10000, 'FDUSD-GUSD': 10000,
+
+  'BUSD-USDC': 10000, 'BUSD-USDT': 10000, 'BUSD-DAI': 10000, 'BUSD-FDUSD': 10000, 'BUSD-TUSD': 10000, 'BUSD-USDP': 10000, 'BUSD-PYUSD': 10000, 'BUSD-USDD': 10000, 'BUSD-GUSD': 10000,
+
+  'TUSD-USDC': 10000, 'TUSD-USDT': 10000, 'TUSD-DAI': 10000, 'TUSD-FDUSD': 10000, 'TUSD-BUSD': 10000, 'TUSD-USDP': 10000, 'TUSD-PYUSD': 10000, 'TUSD-USDD': 10000, 'TUSD-GUSD': 10000,
+
+  'USDP-USDC': 10000, 'USDP-USDT': 10000, 'USDP-DAI': 10000, 'USDP-FDUSD': 10000, 'USDP-BUSD': 10000, 'USDP-TUSD': 10000, 'USDP-PYUSD': 10000, 'USDP-USDD': 10000, 'USDP-GUSD': 10000,
+
+  'PYUSD-USDC': 10000, 'PYUSD-USDT': 10000, 'PYUSD-DAI': 10000, 'PYUSD-FDUSD': 10000, 'PYUSD-BUSD': 10000, 'PYUSD-TUSD': 10000, 'PYUSD-USDP': 10000, 'PYUSD-USDD': 10000, 'PYUSD-GUSD': 10000,
+
+  'USDD-USDC': 10000, 'USDD-USDT': 10000, 'USDD-DAI': 10000, 'USDD-FDUSD': 10000, 'USDD-BUSD': 10000, 'USDD-TUSD': 10000, 'USDD-USDP': 10000, 'USDD-PYUSD': 10000, 'USDD-GUSD': 10000,
+
+  'GUSD-USDC': 10000, 'GUSD-USDT': 10000, 'GUSD-DAI': 10000, 'GUSD-FDUSD': 10000, 'GUSD-BUSD': 10000, 'GUSD-TUSD': 10000, 'GUSD-USDP': 10000, 'GUSD-PYUSD': 10000, 'GUSD-USDD': 10000,
+
+  // ===== Stable ↔ WETH =====
+  'FDUSD-WETH': 4000000000000,
+  'BUSD-WETH': 4000000000000,
+  'TUSD-WETH': 4000000000000,
+  'USDP-WETH': 4000000000000,
+  'PYUSD-WETH': 4000000000000,
+  'USDD-WETH': 4000000000000,
+  'GUSD-WETH': 4000000000000,
+
+  'WETH-FDUSD': 25000,
+  'WETH-BUSD': 25000,
+  'WETH-TUSD': 25000,
+  'WETH-USDP': 25000,
+  'WETH-PYUSD': 25000,
+  'WETH-USDD': 25000,
+  'WETH-GUSD': 25000,
 };
 
 // Router fee and slippage (matching your mock router)
