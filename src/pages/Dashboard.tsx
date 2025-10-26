@@ -1,26 +1,55 @@
 import { motion } from "framer-motion";
-import { TrendingUp, ArrowUpRight, RefreshCw } from "lucide-react";
+import { TrendingUp, ArrowUpRight, RefreshCw, Network } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip } from "recharts";
 import { Button } from "../components/ui/button";
 import { NexusInit } from "../components/NexusInit";
 import { useNexus } from "../contexts/NexusContext";
 import { useNexusBalance } from "../hooks/useNexusBalance";
-import { useMemo } from "react";
+import { useTokenBalances, type TokenSymbol } from "../utils/tokenBalanceUtils";
+import { useMemo, useState } from "react";
+import { Tabs,TabsList, TabsTrigger } from "../components/ui/tabs";
 
 export function Dashboard() {
-  const { isInitialized } = useNexus();
-  const { balances, loading, refetch } = useNexusBalance();
+  const { isInitialized, address } = useNexus();
+  const { balances: nexusBalances, loading: nexusLoading, refetch: nexusRefetch } = useNexusBalance();
+  const { balances: mockBalances, loading: mockLoading, refetch: mockRefetch } = useTokenBalances(address);
+  
+  const [activeTab, setActiveTab] = useState<"testnet" | "mock">("testnet");
 
-  const totalBalance = useMemo(() => {
-    if (!balances || balances.length === 0) return 0;
-    return balances.reduce((sum, asset) => sum + (asset.balanceInFiat || 0), 0);
-  }, [balances]);
+  // Determine which data source to use
+  const isTestnet = activeTab === "testnet";
+  const loading = isTestnet ? nexusLoading : mockLoading;
+  const refetch = isTestnet ? nexusRefetch : mockRefetch;
 
-  const portfolioData = useMemo(() => {
-    if (!balances || balances.length === 0) {
-      return [
-        { name: "No Data", value: 100, color: "#6366F1" },
-      ];
+  // Calculate total balance for Nexus (Testnet)
+  const nexusTotalBalance = useMemo(() => {
+    if (!nexusBalances || nexusBalances.length === 0) return 0;
+    return nexusBalances.reduce((sum, asset) => sum + (asset.balanceInFiat || 0), 0);
+  }, [nexusBalances]);
+
+  // Calculate total balance for Mock Testnet (using mock prices)
+  const mockPrices: Record<TokenSymbol, number> = {
+    USDC: 1.00,
+    USDT: 1.00,
+    DAI: 1.00,
+    WETH: 2500.00,
+  };
+
+  const mockTotalBalance = useMemo(() => {
+    if (!mockBalances || mockBalances.length === 0) return 0;
+    return mockBalances.reduce((sum, asset) => {
+      const balance = parseFloat(asset.balance);
+      const price = mockPrices[asset.token] || 0;
+      return sum + (balance * price);
+    }, 0);
+  }, [mockBalances]);
+
+  const totalBalance = isTestnet ? nexusTotalBalance : mockTotalBalance;
+
+  // Portfolio data for Nexus (Testnet)
+  const nexusPortfolioData = useMemo(() => {
+    if (!nexusBalances || nexusBalances.length === 0) {
+      return [{ name: "No Data", value: 100, color: "#6366F1" }];
     }
 
     const tokenColors: Record<string, string> = {
@@ -28,11 +57,12 @@ export function Dashboard() {
       USDC: "#2775CA",
       DAI: "#F5AC37",
       ETH: "#627EEA",
+      WETH: "#8B5CF6",
       MATIC: "#8247E5",
       PYUSD: "#FF6F61",
     };
 
-    return balances
+    return nexusBalances
       .filter(asset => parseFloat(String(asset.balanceInFiat)) > 0)
       .map((asset, index) => ({
         name: asset.symbol,
@@ -40,7 +70,93 @@ export function Dashboard() {
         token: parseFloat(String(asset.balance)),
         color: tokenColors[asset.symbol] || `hsl(${index * 60}, 70%, 50%)`,
       }));
-  }, [balances]);
+  }, [nexusBalances]);
+
+  // Portfolio data for Mock Testnet
+  const mockPortfolioData = useMemo(() => {
+    if (!mockBalances || mockBalances.length === 0) {
+      return [{ name: "No Data", value: 100, color: "#6366F1" }];
+    }
+
+    const tokenColors: Record<string, string> = {
+      USDT: "#26A17B",
+      USDC: "#2775CA",
+      DAI: "#F5AC37",
+      WETH: "#8B5CF6",
+    };
+
+    // Aggregate balances across chains
+    const aggregated: Record<TokenSymbol, number> = {} as any;
+    
+    mockBalances.forEach(asset => {
+      const balance = parseFloat(asset.balance);
+      const price = mockPrices[asset.token] || 0;
+      const value = balance * price;
+      
+      if (!aggregated[asset.token]) {
+        aggregated[asset.token] = 0;
+      }
+      aggregated[asset.token] += value;
+    });
+
+    return Object.entries(aggregated)
+      .filter(([_, value]) => value > 0)
+      .map(([token, value]) => ({
+        name: token,
+        value,
+        color: tokenColors[token as TokenSymbol] || '#6366F1',
+      }));
+  }, [mockBalances]);
+
+  const portfolioData = isTestnet ? nexusPortfolioData : mockPortfolioData;
+
+  // Chain-wise allocation for Mock Testnet
+  const chainWiseAllocation = useMemo(() => {
+    if (!mockBalances || mockBalances.length === 0 || isTestnet) return [];
+
+    const chainData: Record<number, { name: string; total: number; tokens: any[] }> = {};
+
+    mockBalances.forEach(asset => {
+      const balance = parseFloat(asset.balance);
+      const price = mockPrices[asset.token] || 0;
+      const value = balance * price;
+
+      if (!chainData[asset.chainId]) {
+        chainData[asset.chainId] = {
+          name: asset.chainName,
+          total: 0,
+          tokens: [],
+        };
+      }
+
+      chainData[asset.chainId].total += value;
+      chainData[asset.chainId].tokens.push({
+        symbol: asset.symbol,
+        balance: balance.toFixed(4),
+        value: value.toFixed(2),
+      });
+    });
+
+    return Object.entries(chainData)
+      .map(([chainId, data]) => ({
+        chainId: Number(chainId),
+        name: data.name,
+        total: data.total,
+        percentage: mockTotalBalance > 0 ? (data.total / mockTotalBalance * 100).toFixed(1) : '0',
+        tokens: data.tokens,
+      }))
+      .sort((a, b) => b.total - a.total);
+  }, [mockBalances, mockTotalBalance, isTestnet]);
+
+  // Asset count
+  const assetCount = useMemo(() => {
+    if (isTestnet) {
+      return nexusBalances.length;
+    } else {
+      const uniqueTokens = new Set(mockBalances.map(b => b.token));
+      return uniqueTokens.size;
+    }
+  }, [isTestnet, nexusBalances, mockBalances]);
 
   const transactions = [
     { id: 1, type: "Rebalance", from: "USDT", to: "USDC", amount: "500", time: "2 hours ago", status: "success" },
@@ -59,28 +175,55 @@ export function Dashboard() {
     { time: "Sun", value: 100450 },
   ];
 
+  const chainColors: Record<number, string> = {
+    11155111: '#627EEA', // Sepolia
+    84532: '#0052FF',    // Base Sepolia
+  };
+
   return (
     <div className="min-h-screen pt-24 pb-12">
       <div className="container mx-auto px-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-4xl mb-2">Portfolio Overview</h1>
+            <h1 className="text-4xl font-bold mb-2">Portfolio Overview</h1>
             <p className="text-white/60">Monitor and manage your stablecoin portfolio</p>
           </div>
           <Button 
             onClick={() => refetch()} 
-            disabled={!isInitialized || loading}
-            className="bg-[#3B82F6] text-white hover:bg-[#3B82F6]/80 glow-blue"
+            disabled={loading}
+            className="bg-[#3B82F6] text-white hover:bg-[#3B82F6]/80"
           >
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
         </div>
 
-        {/* Nexus Initialization */}
+        {/* Nexus Initialization - Only show for Testnet */}
+        {activeTab === "testnet" && (
+          <div className="mb-6">
+            <NexusInit />
+          </div>
+        )}
+
+        {/* Testnet Toggle */}
         <div className="mb-6">
-          <NexusInit />
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "testnet" | "mock")} className="w-full">
+            <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 bg-white/5 border border-white/10">
+              <TabsTrigger 
+                value="testnet" 
+                className="data-[state=active]:bg-[#3B82F6]"
+              >
+                Testnet (Nexus)
+              </TabsTrigger>
+              <TabsTrigger 
+                value="mock" 
+                className="data-[state=active]:bg-[#8B5CF6]"
+              >
+                Mock Testnet
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
 
         {/* Main Grid */}
@@ -89,30 +232,33 @@ export function Dashboard() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="lg:col-span-2 glass rounded-2xl p-6 border-glow"
+            className="lg:col-span-2 bg-white/5 rounded-2xl p-6 border border-white/10"
           >
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-sm text-white/60 mb-1">Total Balance</h2>
-                <div className="text-4xl text-[#3B82F6] text-glow-blue">
+                <div className="text-4xl text-[#3B82F6]">
                   {loading ? (
                     <span className="opacity-50">Loading...</span>
-                  ) : isInitialized && totalBalance > 0 ? (
+                  ) : totalBalance > 0 ? (
                     `$${totalBalance.toFixed(2)}`
                   ) : (
                     <span className="opacity-50">$0.00</span>
                   )}
                 </div>
                 <div className="flex items-center gap-2 mt-2">
-                  {isInitialized ? (
+                  {(isTestnet ? isInitialized : address) ? (
                     <>
                       <TrendingUp className="w-4 h-4 text-[#8B5CF6]" />
                       <span className="text-sm text-white/60">
-                        {balances.length} {balances.length === 1 ? 'Asset' : 'Assets'} Across Chains
+                        {assetCount} {assetCount === 1 ? 'Asset' : 'Assets'}
+                        {!isTestnet && ' Across Chains'}
                       </span>
                     </>
                   ) : (
-                    <span className="text-xs text-white/40">Initialize Nexus to view balance</span>
+                    <span className="text-xs text-white/40">
+                      {isTestnet ? 'Initialize Nexus to view balance' : 'Connect wallet to view balance'}
+                    </span>
                   )}
                 </div>
               </div>
@@ -139,16 +285,22 @@ export function Dashboard() {
                     </Pie>
                   </PieChart>
                 </ResponsiveContainer>
-                <div className="grid grid-cols-2 gap-2 mt-4">
+                <div className="space-y-2 mt-4">
                   {portfolioData.map((item) => (
-                    <div key={item.name} className="flex items-center gap-2">
-                      <div
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: item.color }}
-                      />
-                      <span className="text-sm text-white/70">{item.name}</span>
-                      <span className="text-sm text-white/50">${item.value}</span>
-                      <span className="text-sm text-white/40">({((item.value / totalBalance) * 100).toFixed(1)}%)</span>
+                    <div key={item.name} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: item.color }}
+                        />
+                        <span className="text-sm text-white/70">{item.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-white/50">${item.value.toFixed(2)}</span>
+                        <span className="text-sm text-white/40">
+                          ({totalBalance > 0 ? ((item.value / totalBalance) * 100).toFixed(1) : '0'}%)
+                        </span>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -188,7 +340,7 @@ export function Dashboard() {
             transition={{ delay: 0.1 }}
             className="space-y-4"
           >
-            <div className="glass rounded-2xl p-6 border-glow">
+            <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-white/60">Total Yield Earned</span>
                 <ArrowUpRight className="w-4 h-4 text-[#8B5CF6]" />
@@ -197,15 +349,17 @@ export function Dashboard() {
               <div className="text-xs text-white/40 mt-1">+5.2% APY average</div>
             </div>
 
-            <div className="glass rounded-2xl p-6 border-glow">
+            <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-white/60">Active Positions</span>
               </div>
-              <div className="text-2xl">7</div>
-              <div className="text-xs text-white/40 mt-1">Across 4 protocols</div>
+              <div className="text-2xl">{assetCount}</div>
+              <div className="text-xs text-white/40 mt-1">
+                {isTestnet ? 'Across protocols' : `Across ${chainWiseAllocation.length} chains`}
+              </div>
             </div>
 
-            <div className="glass rounded-2xl p-6 border-glow">
+            <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-white/60">Risk Level</span>
               </div>
@@ -215,30 +369,81 @@ export function Dashboard() {
           </motion.div>
         </div>
 
-        {/* ASA Agent Panel */}
-        {/* <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="mb-6"
-        >
-          <AsaAgent
-            message="USDT showing 0.7% depeg risk based on recent market volatility. I suggest shifting 10% to USDC to maintain stability. This will optimize your risk-adjusted returns. Proceed with rebalance?"
-            onApprove={() => console.log("Approved")}
-            onIgnore={() => console.log("Ignored")}
-          />
-        </motion.div> */}
+        {/* Chain-wise Allocation - Only for Mock Testnet */}
+        {!isTestnet && chainWiseAllocation.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="mb-6"
+          >
+            <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
+              <div className="flex items-center gap-2 mb-6">
+                <Network className="w-5 h-5 text-[#3B82F6]" />
+                <h2 className="text-xl">Chain-wise Allocation</h2>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                {chainWiseAllocation.map((chain) => (
+                  <motion.div
+                    key={chain.chainId}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="bg-white/5 rounded-lg p-4 border border-white/10"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: chainColors[chain.chainId] || '#6366F1' }}
+                        />
+                        <h3 className="font-medium">{chain.name}</h3>
+                      </div>
+                      <span className="text-sm text-white/60">{chain.percentage}%</span>
+                    </div>
+
+                    <div className="text-2xl text-[#3B82F6] mb-3">
+                      ${chain.total.toFixed(2)}
+                    </div>
+
+                    <div className="space-y-2">
+                      {chain.tokens.map((token, idx) => (
+                        <div key={idx} className="flex items-center justify-between text-sm">
+                          <span className="text-white/70">{token.symbol}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-white/50">{token.balance}</span>
+                            <span className="text-white/40">${token.value}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mt-3 h-2 bg-white/10 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all"
+                        style={{
+                          width: `${chain.percentage}%`,
+                          backgroundColor: chainColors[chain.chainId] || '#6366F1'
+                        }}
+                      />
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {/* Recent Transactions */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="glass rounded-2xl p-6 border-glow"
+          className="bg-white/5 rounded-2xl p-6 border border-white/10"
         >
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl">Recent Transactions</h2>
-            <Button className="text-[#3B82F6] hover:bg-[#3B82F6]/10">
+            <Button className="text-[#3B82F6] hover:bg-[#3B82F6]/10 bg-transparent">
               View All
             </Button>
           </div>
@@ -257,14 +462,14 @@ export function Dashboard() {
                     <RefreshCw className="w-5 h-5 text-[#3B82F6]" />
                   </div>
                   <div>
-                    <div>{tx.type}</div>
+                    <div className="font-medium">{tx.type}</div>
                     <div className="text-sm text-white/60">
                       {tx.from} → {tx.to}
                     </div>
                   </div>
                 </div>
                 <div className="text-right">
-                  <div>${tx.amount}</div>
+                  <div className="font-medium">${tx.amount}</div>
                   <div className="text-sm text-white/40">{tx.time}</div>
                 </div>
               </motion.div>
