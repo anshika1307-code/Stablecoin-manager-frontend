@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { WalletButton } from "../components/WalletButton";
+import { CoinOrbit } from "../components/CoinOrbit";
 
 interface LandingPageProps {
   onNavigate: (page: string) => void;
@@ -13,8 +14,8 @@ export function LandingPage({ onNavigate }: LandingPageProps) {
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
         {/* Animated background */}
         <div className="absolute inset-0 opacity-30">
-          <div className="absolute top-20 left-20 w-96 h-96 bg-gradient-to-br from-[#3B82F6] to-[#8B5CF6] rounded-full blur-[120px] animate-pulse" />
-          <div className="absolute bottom-20 right-20 w-96 h-96 bg-gradient-to-tr from-[#8B5CF6] to-[#6366F1] rounded-full blur-[120px] animate-pulse" style={{ animationDelay: "1s" }} />
+          <div className="absolute top-20 left-20 w-96 h-96 bg-linear-to-br from-[#3B82F6] to-[#8B5CF6] rounded-full blur-[120px] animate-pulse" />
+          <div className="absolute bottom-20 right-20 w-96 h-96 bg-linear-to-tr from-[#8B5CF6] to-[#6366F1] rounded-full blur-[120px] animate-pulse" style={{ animationDelay: "1s" }} />
         </div>
 
         <div className="container mx-auto px-6 relative z-10">
@@ -50,6 +51,13 @@ export function LandingPage({ onNavigate }: LandingPageProps) {
                 />
               </div>
 
+            </motion.div>
+             <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 1, delay: 0.3 }}
+            >
+              <CoinOrbit />
             </motion.div>
           </div>
         </div>
