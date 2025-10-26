@@ -271,9 +271,12 @@ type Payload = Record<string, number>;
 
 function createBalancePayload(balances: Token[]): Payload {
   return balances.reduce((acc, token) => {
+    if(token.symbol !== 'WETH') {
     const key = `${token.symbol.toLowerCase()}_balance`;
     acc[key] = parseFloat(token.balance) || 0; // ensures 0 if balance is "0" or invalid
+    }
     return acc;
+    
   }, {} as Payload);
 }
 
@@ -288,7 +291,7 @@ function createBalancePayload(balances: Token[]): Payload {
     try {
       setIsLoading(true);
       setError(null);
-
+      console.log("🔄 Fetching rebalance preview with payload:", payload);
       const response: AxiosResponse<RebalanceResponse> = await axios.post(
         url,
         payload,
@@ -1023,6 +1026,7 @@ function createBalancePayload(balances: Token[]): Payload {
                     </motion.div>
                   )}
 
+                
                   {/* Changes Summary */}
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -1116,24 +1120,62 @@ function createBalancePayload(balances: Token[]): Payload {
                             </div>
                           </div>
 
-                          {/* Change Badge */}
-                          {change.type !== "none" && (
-                            <div
-                              className={`px-3 py-1.5 rounded-lg text-sm font-bold whitespace-nowrap ${
-                                change.type === "buy"
-                                  ? "bg-green-500/20 text-green-400"
-                                  : "bg-red-500/20 text-red-400"
-                              }`}
-                            >
-                              {change.change > 0 ? "+" : ""}
-                              {change.change.toFixed(2)}%
-                            </div>
-                          )}
+                          {/* Action Buttons */}
+                          <div className="flex items-center gap-3">
+                            {/* Change Badge */}
+                            {change.type !== "none" && (
+                              <div
+                                className={`px-3 py-1.5 rounded-lg text-sm font-bold whitespace-nowrap ${
+                                  change.type === "buy"
+                                    ? "bg-green-500/20 text-green-400"
+                                    : "bg-red-500/20 text-red-400"
+                                }`}
+                              >
+                                {change.change > 0 ? "+" : ""}
+                                {change.change.toFixed(2)}%
+                              </div>
+                            )}
+                            
+                            {/* Swap Button */}
+                            {change.type !== "none" && change.amount && (
+                              <Button
+                                onClick={() => {
+                                  // Get the swap action from rebalanceData
+                                  const swapAction = change.type === "sell"
+                                    ? rebalanceData?.swap_plan.sells_to_base.find(s => s.src === change.coin)
+                                    : rebalanceData?.swap_plan.buys_from_base.find(b => b.dst === change.coin);
+                                  
+                                  if (swapAction) {
+                                    // For BUY intent: swap from base to destination
+                                    // For SELL intent: swap from source to base
+                                    const isBuyIntent = swapAction.intent === "BUY";
+                                    
+                                    setFromToken(isBuyIntent ? (rebalanceData?.swap_plan.base as TokenSymbol || "USDC") : (change.coin as TokenSymbol));
+                                    setToToken(isBuyIntent ? (change.coin as TokenSymbol) : (rebalanceData?.swap_plan.base as TokenSymbol || "USDC"));
+                                    setFromChain(11155111); // Default chain
+                                    setToChain(11155111); // Default chain
+                                    setSwapAmount(change.amount !== undefined ? change.amount.toString() : "0");
+                                    
+                                    // Switch to manual swap tab
+                                    setActiveTab("manual-swap");
+                                    
+                                    // Scroll to swap section
+                                    setTimeout(() => {
+                                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                                    }, 100);
+                                  }
+                                }}
+                                className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white px-4 py-2 text-sm"
+                                disabled={isSwapping || bridging}
+                              >
+                                Swap
+                              </Button>
+                            )}
+                          </div>
                         </motion.div>
                       ))}
                     </div>
                   </motion.div>
-
                   {/* Swap Plan Summary */}
                   {rebalanceData.swap_plan && (
                     <motion.div
