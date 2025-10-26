@@ -3,7 +3,8 @@ import { LandingPage } from "./pages/LandingPage.tsx";
 import { Dashboard } from "./pages/Dashboard.tsx";
 import { RebalancePage } from "./pages/Rebalance.tsx";
 import { Navbar } from "./components/navbar.tsx";
-import FaucetActions from "./pages/faucet.tsx";
+import FaucetActions from "./pages/Faucet.tsx";
+
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState("landing");

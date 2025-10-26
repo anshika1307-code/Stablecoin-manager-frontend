@@ -1,5 +1,5 @@
 import { useState, useRef, useLayoutEffect } from "react";
-import { Shield, Bell, Settings } from "lucide-react";
+import {  Bell, Settings } from "lucide-react";
 import { Button } from "./ui/button";
 import { WalletButton } from "./WalletButton";
 

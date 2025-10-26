@@ -126,34 +126,11 @@ export function RebalancePage() {
   );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const gasEstimateUSD = 1.25;
-  const tokenPriceUSD = 1.0;
+  
 
-  interface TokenData {
-    token: string;
-    symbol: string;
-    name: string;
-    balance: string;
-    balanceRaw: string;
-    decimals: number;
-    chainId: number;
-    chainName: string;
-    address: string;
-  }
 
-  interface BalancePayload {
-    usdc_balance: number;
-    usdt_balance: number;
-    dai_balance: number;
-    fdusd_balance: number;
-    busd_balance: number;
-    tusd_balance: number;
-    usdp_balance: number;
-    pyusd_balance: number;
-    usdd_balance: number;
-    gusd_balance: number;
-    quote_amount: number;
-  }
+
+
 
 
 
@@ -801,7 +778,7 @@ export function RebalancePage() {
               <p className="text-white/70 mb-6 max-w-md">{error}</p>
               <Button
                 onClick={handleRetry}
-                className="bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] text-white"
+                className="bg-linear-to-r from-[#3B82F6] to-[#8B5CF6] text-white"
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Try Again
@@ -835,6 +812,14 @@ export function RebalancePage() {
                   Your portfolio has been successfully optimized for maximum
                   stability.
                 </p>
+
+                {txHash && (
+                  <div className="mb-4">
+                    <p className="text-sm text-white/60">Transaction Hash</p>
+                    <p className="text-xs text-white/80 break-all">{txHash}</p>
+                  </div>
+                )}
+
                 <div className="flex gap-4 justify-center">
                   <Button
                     onClick={() => setIsComplete(false)}
@@ -844,7 +829,7 @@ export function RebalancePage() {
                   </Button>
                   <Button
                     onClick={() => setIsComplete(false)}
-                    className="bg-gradient-to-r from-[#00FFFF] to-[#00FFAE] text-[#0D0F16]"
+                    className="bg-linear-to-r from-[#00FFFF] to-[#00FFAE] text-[#0D0F16]"
                   >
                     Done
                   </Button>
@@ -1282,7 +1267,7 @@ export function RebalancePage() {
                       <Button
                         onClick={handleRebalance}
                         disabled={isRebalancing}
-                        className="bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] text-white hover:shadow-2xl hover:shadow-[#3B82F6]/50 transition-all glow-blue"
+                        className="bg-linear-to-r from-[#3B82F6] to-[#8B5CF6] text-white hover:shadow-2xl hover:shadow-[#3B82F6]/50 transition-all glow-blue"
                       >
                         {isRebalancing ? (
                           <>
