@@ -194,7 +194,7 @@ export function calculateUSDValue(
  */
 export function estimateGasCost(
   fromChain: ChainId,
-  toChain: ChainId,
+  _toChain: ChainId,
   isCrossChain: boolean
 ): string {
   // Simplified gas estimation

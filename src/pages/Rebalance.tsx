@@ -48,10 +48,10 @@ const MOCK_ROUTER_ABI = [
 export function RebalancePage() {
   const { address } = useNexus();
   const { bridge, bridging, simulateBridge } = useNexusBridge();
-  const { execute, executing, simulateExecute } = useNexusExecute();
+  const { execute, simulateExecute } = useNexusExecute();
 
   // Fetch balances using our custom hook
-  const { balances, loading: balancesLoading, refetch, getFormattedBalance } = useTokenBalances(address);
+  const { loading: balancesLoading, refetch, getFormattedBalance } = useTokenBalances(address);
 
   const [isComplete, setIsComplete] = useState(false);
   const [fromToken, setFromToken] = useState<TokenSymbol>("USDC");
@@ -168,11 +168,12 @@ export function RebalancePage() {
           contractAbi: MOCK_ROUTER_ABI,
           functionName: 'exactInputSingle',
           buildFunctionParams: (
-            token: string,
-            amt: string,
-            chainId: number,
+            _token: string,
+            _amt: string,
+            _chainId: number,
             userAddress: `0x${string}`
           ) => {
+            
             const minAmountOut = BigInt(1);
             return {
               functionParams: [
@@ -274,9 +275,9 @@ export function RebalancePage() {
         contractAbi: MOCK_ROUTER_ABI,
         functionName: 'exactInputSingle',
         buildFunctionParams: (
-          token: string,
-          amt: string,
-          chainId: number,
+          _token: string,
+          _amt: string,
+          _chainId: number,
           userAddress: `0x${string}`
         ) => {
           const minAmountOut = BigInt(1);
@@ -466,7 +467,7 @@ export function RebalancePage() {
                   setSimulatedExecute(null);
                   refetch();
                 }}
-                className="bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] text-white"
+                className="bg-linear-to-r from-[#3B82F6] to-[#8B5CF6] text-white"
               >
                 Make Another Swap
               </Button>
@@ -499,7 +500,7 @@ export function RebalancePage() {
                   <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-gradient-to-r from-[#3B82F6]/20 to-[#8B5CF6]/20 rounded-2xl p-6 border border-white/10 text-center"
+                    className="bg-linear-to-r from-[#3B82F6]/20 to-[#8B5CF6]/20 rounded-2xl p-6 border border-white/10 text-center"
                   >
                     <p className="text-white/60 text-sm mb-2">Total Portfolio Value</p>
                     <h2 className="text-4xl font-bold">${portfolioData.totalValue}</h2>
@@ -575,7 +576,7 @@ export function RebalancePage() {
 
                       <div className="space-y-3">
                         {portfolioData.suggested.map((item) => (
-                          <div key={item.name} className="bg-gradient-to-r from-[#8B5CF6]/10 to-transparent rounded-lg p-4 border border-[#8B5CF6]/20">
+                          <div key={item.name} className="bg-linear-to-r from-[#8B5CF6]/10 to-transparent rounded-lg p-4 border border-[#8B5CF6]/20">
                             <div className="flex items-center justify-between mb-2">
                               <div className="flex items-center gap-2">
                                 <div
@@ -672,7 +673,7 @@ export function RebalancePage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.7 }}
-                    className="bg-gradient-to-r from-[#3B82F6]/10 to-[#8B5CF6]/10 rounded-2xl p-8 border border-white/10 text-center"
+                    className="bg-linear-to-r from-[#3B82F6]/10 to-[#8B5CF6]/10 rounded-2xl p-8 border border-white/10 text-center"
                   >
                     <div className="mb-6">
                       <h3 className="text-2xl font-bold mb-2">Ready to Optimize?</h3>
@@ -691,7 +692,7 @@ export function RebalancePage() {
                       </Button>
                       <Button
                         disabled
-                        className="bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] text-white opacity-50 cursor-not-allowed"
+                        className="bg-linear-to-r from-[#3B82F6] to-[#8B5CF6] text-white opacity-50 cursor-not-allowed"
                       >
                         Auto-Rebalance (Coming Soon)
                       </Button>
@@ -955,7 +956,7 @@ export function RebalancePage() {
                     parseFloat(swapAmount) > parseFloat(getCurrentBalance(fromToken, fromChain)) ||
                     balancesLoading
                   }
-                  className="w-full bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] text-white py-3 rounded-lg font-medium hover:shadow-2xl hover:shadow-[#8B5CF6]/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-linear-to-r from-[#3B82F6] to-[#8B5CF6] text-white py-3 rounded-lg font-medium hover:shadow-2xl hover:shadow-[#8B5CF6]/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSwapping || bridging ? (
                     <>
