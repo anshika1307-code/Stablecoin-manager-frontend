@@ -52,7 +52,7 @@ export function Navbar({ currentPage, onNavigate }: NavbarProps) {
               />
               <div className="absolute inset-0 bg-[#3B82F6] opacity-20 blur-xl rounded-full" />
             </div>
-            <span className="tracking-tight font-serif">STABLEFLOW</span>
+            <span className="tracking-tight font-serif">STABLEGUARDAI</span>
           </button>
 
           <div className="hidden md:flex items-center gap-1">

@@ -100,7 +100,7 @@ export function RebalancePage() {
   const { execute, simulateExecute } = useNexusExecute();
 
   // Fetch balances using our custom hook
-  const { loading: balancesLoading, refetch, getFormattedBalance,balances } = useTokenBalances(address);
+  const { loading: balancesLoading, refetch, getFormattedBalance, balances } = useTokenBalances(address);
 
   const [isComplete, setIsComplete] = useState(false);
   const [fromToken, setFromToken] = useState<TokenSymbol>("USDC");
@@ -111,13 +111,14 @@ export function RebalancePage() {
   const [isSwapping, setIsSwapping] = useState(false);
   const [txHash, setTxHash] = useState("");
   const [swapError, setSwapError] = useState("");
-  
+  const [completedSwaps, setCompletedSwaps] = useState<Set<string>>(new Set());
+
   // Simulation states
   const [simulatedBridge, setSimulatedBridge] = useState<any>(null);
   const [simulatedExecute, setSimulatedExecute] = useState<any>(null);
   const [isSimulating, setIsSimulating] = useState(false);
   const [simulationError, setSimulationError] = useState("");
-const [isRebalancing, setIsRebalancing] = useState(false);
+  const [isRebalancing, setIsRebalancing] = useState(false);
 
   // API states
   const [rebalanceData, setRebalanceData] = useState<RebalanceResponse | null>(
@@ -129,30 +130,30 @@ const [isRebalancing, setIsRebalancing] = useState(false);
   const tokenPriceUSD = 1.0;
 
   interface TokenData {
-  token: string;
-  symbol: string;
-  name: string;
-  balance: string;
-  balanceRaw: string;
-  decimals: number;
-  chainId: number;
-  chainName: string;
-  address: string;
-}
+    token: string;
+    symbol: string;
+    name: string;
+    balance: string;
+    balanceRaw: string;
+    decimals: number;
+    chainId: number;
+    chainName: string;
+    address: string;
+  }
 
-interface BalancePayload {
-  usdc_balance: number;
-  usdt_balance: number;
-  dai_balance: number;
-  fdusd_balance: number;
-  busd_balance: number;
-  tusd_balance: number;
-  usdp_balance: number;
-  pyusd_balance: number;
-  usdd_balance: number;
-  gusd_balance: number;
-  quote_amount: number;
-}
+  interface BalancePayload {
+    usdc_balance: number;
+    usdt_balance: number;
+    dai_balance: number;
+    fdusd_balance: number;
+    busd_balance: number;
+    tusd_balance: number;
+    usdp_balance: number;
+    pyusd_balance: number;
+    usdd_balance: number;
+    gusd_balance: number;
+    quote_amount: number;
+  }
 
 
 
@@ -170,7 +171,7 @@ interface BalancePayload {
       .sort((a, b) => b.value - a.value);
   };
 
-  
+
   // Calculate changes from swap_plan data
   const calculateChanges = () => {
     if (!rebalanceData) return [];
@@ -256,36 +257,36 @@ interface BalancePayload {
   };
 
   type Token = {
-  token: string;
-  symbol: string;
-  name: string;
-  balance: string;
-  balanceRaw: string;
-  decimals: number;
-  chainId: number;
-  chainName: string;
-  address: string;
-};
+    token: string;
+    symbol: string;
+    name: string;
+    balance: string;
+    balanceRaw: string;
+    decimals: number;
+    chainId: number;
+    chainName: string;
+    address: string;
+  };
 
-type Payload = Record<string, number>;
+  type Payload = Record<string, number>;
 
-function createBalancePayload(balances: Token[]): Payload {
-  return balances.reduce((acc, token) => {
-    if(token.symbol !== 'WETH') {
-    const key = `${token.symbol.toLowerCase()}_balance`;
-    acc[key] = parseFloat(token.balance) || 0; // ensures 0 if balance is "0" or invalid
-    }
-    return acc;
-    
-  }, {} as Payload);
-}
+  function createBalancePayload(balances: Token[]): Payload {
+    return balances.reduce((acc, token) => {
+      if (token.symbol !== 'WETH') {
+        const key = `${token.symbol.toLowerCase()}_balance`;
+        acc[key] = parseFloat(token.balance) || 0; // ensures 0 if balance is "0" or invalid
+      }
+      return acc;
+
+    }, {} as Payload);
+  }
 
   // Single request 
   // without retries
   const fetchRebalancePreview = async (): Promise<void> => {
     const url = "https://ethonline2025.onrender.com/rebalance/preview";
 
-   const payload = createBalancePayload(balances);
+    const payload = createBalancePayload(balances);
 
 
     try {
@@ -463,7 +464,7 @@ function createBalancePayload(balances: Token[]): Payload {
           };
 
           const bridgeResult = await simulateBridge(bridgeParams);
-          
+
           if (bridgeResult) {
             setSimulatedBridge(bridgeResult);
           }
@@ -497,7 +498,7 @@ function createBalancePayload(balances: Token[]): Payload {
             _chainId: number,
             userAddress: `0x${string}`
           ) => {
-            
+
             const minAmountOut = BigInt(1);
             return {
               functionParams: [
@@ -522,7 +523,7 @@ function createBalancePayload(balances: Token[]): Payload {
         };
 
         const executeResult = await simulateExecute(executeParams);
-        
+
         if (executeResult) {
           setSimulatedExecute(executeResult);
         }
@@ -558,7 +559,7 @@ function createBalancePayload(balances: Token[]): Payload {
     setIsSwapping(true);
     setSwapError('');
     setTxHash('');
-
+    const swapKey = `${fromToken}-${toToken}-${swapAmount}`;
     try {
       const isCrossChain = fromChain !== toChain;
       const tokenConfig = TOKEN_CONFIG[fromToken];
@@ -631,6 +632,7 @@ function createBalancePayload(balances: Token[]): Payload {
 
       if (swapResult?.transactionHash) {
         setTxHash(swapResult.transactionHash);
+        setCompletedSwaps(prev => new Set(prev).add(swapKey));
         setIsComplete(true);
         setTimeout(() => refetch(), 2000);
       } else {
@@ -736,7 +738,7 @@ function createBalancePayload(balances: Token[]): Payload {
   //   const variance = allocations.reduce((sum, alloc) => {
   //     return sum + Math.pow(alloc - idealAllocation, 2);
   //   }, 0) / allocations.length;
-    
+
   //   // Convert to 0-100 scale (lower variance = higher stability)
   //   const maxVariance = Math.pow(100, 2); // Max possible variance
   //   const stabilityScore = 100 - (variance / maxVariance) * 100;
@@ -745,15 +747,15 @@ function createBalancePayload(balances: Token[]): Payload {
 
   // const portfolioData = calculatePortfolioData();
 
-  const swapEstimate = swapAmount && parseFloat(swapAmount) > 0 
-    ? calculateSwapOutput(fromToken, toToken, swapAmount, 0.5) 
+  const swapEstimate = swapAmount && parseFloat(swapAmount) > 0
+    ? calculateSwapOutput(fromToken, toToken, swapAmount, 0.5)
     : null;
-  
+
   // const estimatedReceive = swapEstimate?.estimatedOutput || "0.00";
   const exchangeRate = getExchangeRate(fromToken, toToken);
 
   return (
-   <div className="min-h-screen pt-24 pb-12">
+    <div className="min-h-screen pt-24 pb-12">
       <div className="container mx-auto px-6">
         {/* Header */}
         <div className="mb-8">
@@ -1026,7 +1028,7 @@ function createBalancePayload(balances: Token[]): Payload {
                     </motion.div>
                   )}
 
-                
+
                   {/* Changes Summary */}
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -1043,13 +1045,12 @@ function createBalancePayload(balances: Token[]): Payload {
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: 0.3 + index * 0.05 }}
-                          className={`flex items-center justify-between p-4 rounded-lg border ${
-                            change.type === "sell"
+                          className={`flex items-center justify-between p-4 rounded-lg border ${change.type === "sell"
                               ? "bg-red-500/5 border-red-500/20"
                               : change.type === "buy"
-                              ? "bg-green-500/5 border-green-500/20"
-                              : "bg-white/5 border-white/10"
-                          }`}
+                                ? "bg-green-500/5 border-green-500/20"
+                                : "bg-white/5 border-white/10"
+                            }`}
                         >
                           <div className="flex items-center gap-4 flex-1">
                             {/* Token Icon */}
@@ -1084,24 +1085,22 @@ function createBalancePayload(balances: Token[]): Payload {
                                   {change.coin}
                                 </span>
                                 <span
-                                  className={`text-sm ${
-                                    change.type === "sell"
+                                  className={`text-sm ${change.type === "sell"
                                       ? "text-red-400"
                                       : change.type === "buy"
-                                      ? "text-green-400"
-                                      : "text-white/60"
-                                  }`}
+                                        ? "text-green-400"
+                                        : "text-white/60"
+                                    }`}
                                 >
                                   •
                                 </span>
                                 <span
-                                  className={`text-base font-medium ${
-                                    change.type === "sell"
+                                  className={`text-base font-medium ${change.type === "sell"
                                       ? "text-red-400"
                                       : change.type === "buy"
-                                      ? "text-green-400"
-                                      : "text-white/70"
-                                  }`}
+                                        ? "text-green-400"
+                                        : "text-white/70"
+                                    }`}
                                 >
                                   {change.action}
                                 </span>
@@ -1125,19 +1124,18 @@ function createBalancePayload(balances: Token[]): Payload {
                             {/* Change Badge */}
                             {change.type !== "none" && (
                               <div
-                                className={`px-3 py-1.5 rounded-lg text-sm font-bold whitespace-nowrap ${
-                                  change.type === "buy"
+                                className={`px-3 py-1.5 rounded-lg text-sm font-bold whitespace-nowrap ${change.type === "buy"
                                     ? "bg-green-500/20 text-green-400"
                                     : "bg-red-500/20 text-red-400"
-                                }`}
+                                  }`}
                               >
                                 {change.change > 0 ? "+" : ""}
                                 {change.change.toFixed(2)}%
                               </div>
                             )}
-                            
+
                             {/* Swap Button */}
-                            {change.type !== "none" && change.amount && (
+                            {/* {change.type !== "none" && change.amount && (
                               <Button
                                 onClick={() => {
                                   // Get the swap action from rebalanceData
@@ -1169,6 +1167,54 @@ function createBalancePayload(balances: Token[]): Payload {
                                 disabled={isSwapping || bridging}
                               >
                                 Swap
+                              </Button>
+                            )} */}
+                            {change.type !== "none" && change.amount && (
+                              <Button
+                                onClick={() => {
+                                  const swapAction = change.type === "sell"
+                                    ? rebalanceData?.swap_plan.sells_to_base.find(s => s.src === change.coin)
+                                    : rebalanceData?.swap_plan.buys_from_base.find(b => b.dst === change.coin);
+
+                                  if (swapAction) {
+                                    const isBuyIntent = swapAction.intent === "BUY";
+
+                                    setFromToken(isBuyIntent ? (rebalanceData?.swap_plan.base as TokenSymbol || "USDC") : (change.coin as TokenSymbol));
+                                    setToToken(isBuyIntent ? (change.coin as TokenSymbol) : (rebalanceData?.swap_plan.base as TokenSymbol || "USDC"));
+                                    setFromChain(11155111);
+                                    setToChain(11155111);
+                                    setSwapAmount((change.amount ?? 0).toString());
+
+                                    setActiveTab("manual-swap");
+
+                                    setTimeout(() => {
+                                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                                    }, 100);
+                                  }
+                                }}
+                                className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white px-4 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled={
+                                  isSwapping ||
+                                  bridging ||
+                                  completedSwaps.has(
+                                    change.type === "sell"
+                                      ? `${change.coin}-${rebalanceData?.swap_plan.base}-${change.amount}`
+                                      : `${rebalanceData?.swap_plan.base}-${change.coin}-${change.amount}`
+                                  )
+                                }
+                              >
+                                {completedSwaps.has(
+                                  change.type === "sell"
+                                    ? `${change.coin}-${rebalanceData?.swap_plan.base}-${change.amount}`
+                                    : `${rebalanceData?.swap_plan.base}-${change.coin}-${change.amount}`
+                                ) ? (
+                                  <>
+                                    <CheckCircle className="w-4 h-4 mr-1" />
+                                    Done
+                                  </>
+                                ) : (
+                                  "Swap"
+                                )}
                               </Button>
                             )}
                           </div>
@@ -1266,265 +1312,265 @@ function createBalancePayload(balances: Token[]): Payload {
 
                 {/* Manual Swap Tab */}
                 <TabsContent value="manual-swap" className="space-y-6">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-white/5 rounded-2xl p-6 border border-white/10 max-w-2xl mx-auto"
-              >
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl">Token Swap</h2>
-                  <div className="flex items-center gap-3">
-                    {isSimulating && (
-                      <div className="flex items-center gap-2 text-sm text-[#3B82F6]">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Simulating...
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-white/5 rounded-2xl p-6 border border-white/10 max-w-2xl mx-auto"
+                  >
+                    <div className="flex items-center justify-between mb-6">
+                      <h2 className="text-xl">Token Swap</h2>
+                      <div className="flex items-center gap-3">
+                        {isSimulating && (
+                          <div className="flex items-center gap-2 text-sm text-[#3B82F6]">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Simulating...
+                          </div>
+                        )}
+                        {balancesLoading && (
+                          <div className="flex items-center gap-2 text-sm text-white/60">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Loading...
+                          </div>
+                        )}
+                        {!balancesLoading && (
+                          <button
+                            onClick={() => refetch()}
+                            className="text-sm text-[#3B82F6] hover:text-[#2563EB] flex items-center gap-1"
+                          >
+                            <RefreshCw className="w-4 h-4" />
+                            Refresh
+                          </button>
+                        )}
                       </div>
-                    )}
-                    {balancesLoading && (
-                      <div className="flex items-center gap-2 text-sm text-white/60">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Loading...
-                      </div>
-                    )}
-                    {!balancesLoading && (
-                      <button
-                        onClick={() => refetch()}
-                        className="text-sm text-[#3B82F6] hover:text-[#2563EB] flex items-center gap-1"
-                      >
-                        <RefreshCw className="w-4 h-4" />
-                        Refresh
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-4 mb-6">
-                  <label className="block text-sm text-white/80">From</label>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <select
-                        value={fromToken}
-                        onChange={(e) => setFromToken(e.target.value as TokenSymbol)}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-white"
-                      >
-                        {tokens.map((token) => (
-                          <option key={token.symbol} value={token.symbol}>
-                            {token.symbol} - {token.name}
-                          </option>
-                        ))}
-                      </select>
-                      <p className="text-xs text-white/40 mt-1">
-                        Balance: {balancesLoading ? '...' : getCurrentBalance(fromToken, fromChain)}
-                      </p>
                     </div>
 
-                    <div>
-                      <select
-                        value={fromChain}
-                        onChange={(e) => setFromChain(Number(e.target.value) as ChainId)}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-white"
-                      >
-                        {chains.map((chain) => (
-                          <option key={chain.id} value={chain.id}>
-                            {chain.name}
-                          </option>
-                        ))}
-                      </select>
-                      <p className="text-xs text-white/40 mt-1">Network</p>
-                    </div>
-                  </div>
-
-                  <input
-                    type="number"
-                    placeholder="0.00"
-                    value={swapAmount}
-                    onChange={(e) => setSwapAmount(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 text-2xl rounded-lg p-3 h-14 text-white"
-                  />
-
-                  {swapAmount && parseFloat(swapAmount) > parseFloat(getCurrentBalance(fromToken, fromChain)) && (
-                    <p className="text-sm text-red-400">Insufficient balance</p>
-                  )}
-                </div>
-
-                <div className="flex justify-center -my-2 relative z-10">
-                  <div className="bg-[#1a1f2e] p-3 rounded-full border-2 border-[#8B5CF6]/30">
-                    <ArrowUpDown className="w-5 h-5 text-[#8B5CF6]" />
-                  </div>
-                </div>
-
-                <div className="space-y-4 mt-6 mb-6">
-                  <label className="block text-sm text-white/80">To</label>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <select
-                        value={toToken}
-                        onChange={(e) => setToToken(e.target.value as TokenSymbol)}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-white"
-                      >
-                        {tokens.filter(t => t.symbol !== fromToken).map((token) => (
-                          <option key={token.symbol} value={token.symbol}>
-                            {token.symbol} - {token.name}
-                          </option>
-                        ))}
-                      </select>
-                      <p className="text-xs text-white/40 mt-1">
-                        Balance: {balancesLoading ? '...' : getCurrentBalance(toToken, toChain)}
-                      </p>
-                    </div>
-
-                    <div>
-                      <select
-                        value={toChain}
-                        onChange={(e) => setToChain(Number(e.target.value) as ChainId)}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-white"
-                      >
-                        {chains.map((chain) => (
-                          <option key={chain.id} value={chain.id}>
-                            {chain.name}
-                          </option>
-                        ))}
-                      </select>
-                      <p className="text-xs text-white/40 mt-1">Network</p>
-                    </div>
-                  </div>
-
-                  <div className="bg-white/5 border border-white/10 rounded-lg p-4 text-2xl h-14 flex items-center justify-between text-white">
-                    <span>{estimatedReceive !== "0.00" ? `≈ ${parseFloat(estimatedReceive).toFixed(6)}` : "0.00"}</span>
-                    <span className="text-white/60 text-lg">{toToken}</span>
-                  </div>
-                </div>
-
-                {/* Swap Details */}
-                <div className="bg-white/5 rounded-lg p-4 space-y-2 mb-6 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-white/60">Exchange Rate</span>
-                    <span>{exchangeRate}</span>
-                  </div>
-                  {swapEstimate && (
-                    <>
-                      <div className="flex justify-between">
-                        <span className="text-white/60">Minimum Received</span>
-                        <span className="text-green-400">
-                          {parseFloat(swapEstimate.minimumOutput).toFixed(6)} {toToken}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-white/60">Price Impact</span>
-                        <span className={swapEstimate.priceImpact > 1 ? 'text-yellow-400' : 'text-green-400'}>
-                          {swapEstimate.priceImpact.toFixed(2)}%
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-white/60">Swap Fee (0.3%)</span>
-                        <span>{parseFloat(swapEstimate.fee).toFixed(6)} {toToken}</span>
-                      </div>
-                    </>
-                  )}
-                  <div className="flex justify-between">
-                    <span className="text-white/60">Slippage Tolerance</span>
-                    <span>0.5%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-white/60">Route</span>
-                    <span className="text-xs">
-                      {fromChain === toChain ? "Direct Swap" : "Bridge + Swap"}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Simulation Results */}
-                {(simulatedExecute || simulatedBridge) && !simulationError && (
-                  <div className="space-y-3 mb-6">
-                    {/* Execute Simulation */}
-                    {simulatedExecute && (
-                      <div className="bg-[#10B981]/10 border border-[#10B981]/30 rounded-lg p-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <CheckCircle className="w-4 h-4 text-[#10B981]" />
-                          <p className="text-sm font-semibold text-[#10B981]">Swap Simulation Successful</p>
+                    <div className="space-y-4 mb-6">
+                      <label className="block text-sm text-white/80">From</label>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <select
+                            value={fromToken}
+                            onChange={(e) => setFromToken(e.target.value as TokenSymbol)}
+                            className="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-white"
+                          >
+                            {tokens.map((token) => (
+                              <option key={token.symbol} value={token.symbol}>
+                                {token.symbol} - {token.name}
+                              </option>
+                            ))}
+                          </select>
+                          <p className="text-xs text-white/40 mt-1">
+                            Balance: {balancesLoading ? '...' : getCurrentBalance(fromToken, fromChain)}
+                          </p>
                         </div>
-                        {simulatedExecute.intent?.fees && (
-                          <div className="space-y-1 text-xs text-white/70">
-                            <p>Estimated Gas: {JSON.stringify(simulatedExecute.intent.fees)}</p>
+
+                        <div>
+                          <select
+                            value={fromChain}
+                            onChange={(e) => setFromChain(Number(e.target.value) as ChainId)}
+                            className="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-white"
+                          >
+                            {chains.map((chain) => (
+                              <option key={chain.id} value={chain.id}>
+                                {chain.name}
+                              </option>
+                            ))}
+                          </select>
+                          <p className="text-xs text-white/40 mt-1">Network</p>
+                        </div>
+                      </div>
+
+                      <input
+                        type="number"
+                        placeholder="0.00"
+                        value={swapAmount}
+                        onChange={(e) => setSwapAmount(e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 text-2xl rounded-lg p-3 h-14 text-white"
+                      />
+
+                      {swapAmount && parseFloat(swapAmount) > parseFloat(getCurrentBalance(fromToken, fromChain)) && (
+                        <p className="text-sm text-red-400">Insufficient balance</p>
+                      )}
+                    </div>
+
+                    <div className="flex justify-center -my-2 relative z-10">
+                      <div className="bg-[#1a1f2e] p-3 rounded-full border-2 border-[#8B5CF6]/30">
+                        <ArrowUpDown className="w-5 h-5 text-[#8B5CF6]" />
+                      </div>
+                    </div>
+
+                    <div className="space-y-4 mt-6 mb-6">
+                      <label className="block text-sm text-white/80">To</label>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <select
+                            value={toToken}
+                            onChange={(e) => setToToken(e.target.value as TokenSymbol)}
+                            className="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-white"
+                          >
+                            {tokens.filter(t => t.symbol !== fromToken).map((token) => (
+                              <option key={token.symbol} value={token.symbol}>
+                                {token.symbol} - {token.name}
+                              </option>
+                            ))}
+                          </select>
+                          <p className="text-xs text-white/40 mt-1">
+                            Balance: {balancesLoading ? '...' : getCurrentBalance(toToken, toChain)}
+                          </p>
+                        </div>
+
+                        <div>
+                          <select
+                            value={toChain}
+                            onChange={(e) => setToChain(Number(e.target.value) as ChainId)}
+                            className="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-white"
+                          >
+                            {chains.map((chain) => (
+                              <option key={chain.id} value={chain.id}>
+                                {chain.name}
+                              </option>
+                            ))}
+                          </select>
+                          <p className="text-xs text-white/40 mt-1">Network</p>
+                        </div>
+                      </div>
+
+                      <div className="bg-white/5 border border-white/10 rounded-lg p-4 text-2xl h-14 flex items-center justify-between text-white">
+                        <span>{estimatedReceive !== "0.00" ? `≈ ${parseFloat(estimatedReceive).toFixed(6)}` : "0.00"}</span>
+                        <span className="text-white/60 text-lg">{toToken}</span>
+                      </div>
+                    </div>
+
+                    {/* Swap Details */}
+                    <div className="bg-white/5 rounded-lg p-4 space-y-2 mb-6 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-white/60">Exchange Rate</span>
+                        <span>{exchangeRate}</span>
+                      </div>
+                      {swapEstimate && (
+                        <>
+                          <div className="flex justify-between">
+                            <span className="text-white/60">Minimum Received</span>
+                            <span className="text-green-400">
+                              {parseFloat(swapEstimate.minimumOutput).toFixed(6)} {toToken}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-white/60">Price Impact</span>
+                            <span className={swapEstimate.priceImpact > 1 ? 'text-yellow-400' : 'text-green-400'}>
+                              {swapEstimate.priceImpact.toFixed(2)}%
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-white/60">Swap Fee (0.3%)</span>
+                            <span>{parseFloat(swapEstimate.fee).toFixed(6)} {toToken}</span>
+                          </div>
+                        </>
+                      )}
+                      <div className="flex justify-between">
+                        <span className="text-white/60">Slippage Tolerance</span>
+                        <span>0.5%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-white/60">Route</span>
+                        <span className="text-xs">
+                          {fromChain === toChain ? "Direct Swap" : "Bridge + Swap"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Simulation Results */}
+                    {(simulatedExecute || simulatedBridge) && !simulationError && (
+                      <div className="space-y-3 mb-6">
+                        {/* Execute Simulation */}
+                        {simulatedExecute && (
+                          <div className="bg-[#10B981]/10 border border-[#10B981]/30 rounded-lg p-4">
+                            <div className="flex items-center gap-2 mb-2">
+                              <CheckCircle className="w-4 h-4 text-[#10B981]" />
+                              <p className="text-sm font-semibold text-[#10B981]">Swap Simulation Successful</p>
+                            </div>
+                            {simulatedExecute.intent?.fees && (
+                              <div className="space-y-1 text-xs text-white/70">
+                                <p>Estimated Gas: {JSON.stringify(simulatedExecute.intent.fees)}</p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Bridge Simulation */}
+                        {simulatedBridge && fromChain !== toChain && (
+                          <div className="bg-[#3B82F6]/10 border border-[#3B82F6]/30 rounded-lg p-4">
+                            <div className="flex items-center gap-2 mb-2">
+                              <CheckCircle className="w-4 h-4 text-[#3B82F6]" />
+                              <p className="text-sm font-semibold text-[#3B82F6]">Bridge Simulation Successful</p>
+                            </div>
+                            {simulatedBridge.intent?.fees && (
+                              <div className="space-y-1 text-xs text-white/70">
+                                <p>Bridge Fees: {JSON.stringify(simulatedBridge.intent.fees)}</p>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
                     )}
 
-                    {/* Bridge Simulation */}
-                    {simulatedBridge && fromChain !== toChain && (
-                      <div className="bg-[#3B82F6]/10 border border-[#3B82F6]/30 rounded-lg p-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <CheckCircle className="w-4 h-4 text-[#3B82F6]" />
-                          <p className="text-sm font-semibold text-[#3B82F6]">Bridge Simulation Successful</p>
+                    {/* Simulation Error */}
+                    {simulationError && (
+                      <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mb-6 flex gap-3">
+                        <AlertCircle className="w-5 h-5 text-yellow-400 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-semibold text-yellow-400 mb-1">Simulation Warning</p>
+                          <p className="text-xs text-white/70">{simulationError}</p>
+                          <p className="text-xs text-white/50 mt-2">You can still attempt the transaction</p>
                         </div>
-                        {simulatedBridge.intent?.fees && (
-                          <div className="space-y-1 text-xs text-white/70">
-                            <p>Bridge Fees: {JSON.stringify(simulatedBridge.intent.fees)}</p>
-                          </div>
-                        )}
                       </div>
                     )}
-                  </div>
-                )}
 
-                {/* Simulation Error */}
-                {simulationError && (
-                  <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mb-6 flex gap-3">
-                    <AlertCircle className="w-5 h-5 text-yellow-400 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-semibold text-yellow-400 mb-1">Simulation Warning</p>
-                      <p className="text-xs text-white/70">{simulationError}</p>
-                      <p className="text-xs text-white/50 mt-2">You can still attempt the transaction</p>
-                    </div>
-                  </div>
-                )}
+                    {/* Cross-chain Info */}
+                    {fromChain !== toChain && (
+                      <div className="bg-[#3B82F6]/10 border border-[#3B82F6]/30 rounded-lg p-4 mb-6 flex gap-3">
+                        <Info className="w-5 h-5 text-[#3B82F6] shrink-0 mt-0.5" />
+                        <p className="text-sm text-white/70">
+                          Cross-chain swap: Tokens will be bridged from {CHAIN_CONFIG[fromChain].name} to {CHAIN_CONFIG[toChain].name}, then swapped.
+                        </p>
+                      </div>
+                    )}
 
-                {/* Cross-chain Info */}
-                {fromChain !== toChain && (
-                  <div className="bg-[#3B82F6]/10 border border-[#3B82F6]/30 rounded-lg p-4 mb-6 flex gap-3">
-                    <Info className="w-5 h-5 text-[#3B82F6] shrink-0 mt-0.5" />
-                    <p className="text-sm text-white/70">
-                      Cross-chain swap: Tokens will be bridged from {CHAIN_CONFIG[fromChain].name} to {CHAIN_CONFIG[toChain].name}, then swapped.
-                    </p>
-                  </div>
-                )}
+                    {/* Swap Error */}
+                    {swapError && (
+                      <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 mb-6 flex gap-3">
+                        <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-semibold text-red-400 mb-1">Transaction Failed</p>
+                          <p className="text-sm text-red-300">{swapError}</p>
+                        </div>
+                      </div>
+                    )}
 
-                {/* Swap Error */}
-                {swapError && (
-                  <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 mb-6 flex gap-3">
-                    <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-semibold text-red-400 mb-1">Transaction Failed</p>
-                      <p className="text-sm text-red-300">{swapError}</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Swap Button */}
-                <button
-                  onClick={handleManualSwap}
-                  disabled={
-                    isSwapping ||
-                    bridging ||
-                    !swapAmount ||
-                    parseFloat(swapAmount) <= 0 ||
-                    parseFloat(swapAmount) > parseFloat(getCurrentBalance(fromToken, fromChain)) ||
-                    balancesLoading
-                  }
-                  className="w-full bg-linear-to-r from-[#3B82F6] to-[#8B5CF6] text-white py-3 rounded-lg font-medium hover:shadow-2xl hover:shadow-[#8B5CF6]/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isSwapping || bridging ? (
-                    <>
-                      <RefreshCw className="w-5 h-5 inline mr-2 animate-spin" />
-                      {bridging ? 'Bridging...' : 'Swapping...'}
-                    </>
-                  ) : (
-                    `Swap ${fromToken} for ${toToken}`
-                  )}
-                </button>
-              </motion.div>
-            </TabsContent>
+                    {/* Swap Button */}
+                    <button
+                      onClick={handleManualSwap}
+                      disabled={
+                        isSwapping ||
+                        bridging ||
+                        !swapAmount ||
+                        parseFloat(swapAmount) <= 0 ||
+                        parseFloat(swapAmount) > parseFloat(getCurrentBalance(fromToken, fromChain)) ||
+                        balancesLoading
+                      }
+                      className="w-full bg-linear-to-r from-[#3B82F6] to-[#8B5CF6] text-white py-3 rounded-lg font-medium hover:shadow-2xl hover:shadow-[#8B5CF6]/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isSwapping || bridging ? (
+                        <>
+                          <RefreshCw className="w-5 h-5 inline mr-2 animate-spin" />
+                          {bridging ? 'Bridging...' : 'Swapping...'}
+                        </>
+                      ) : (
+                        `Swap ${fromToken} for ${toToken}`
+                      )}
+                    </button>
+                  </motion.div>
+                </TabsContent>
               </Tabs>
             )}
           </>
