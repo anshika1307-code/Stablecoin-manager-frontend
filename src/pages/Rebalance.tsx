@@ -318,110 +318,101 @@ export function RebalancePage() {
       setIsSwapping(false);
     }
   };
+    const calculatePortfolioData = () => {
+    if (!address || balancesLoading) return { current: [], suggested: [], changes: [], totalValue: 0 };
 
-  //Calculate swap output
-  //   const handleManualSwap = async () => {
-  //   if (!swapAmount || parseFloat(swapAmount) <= 0) {
-  //     setSwapError('Please enter a valid amount');
-  //     return;
-  //   }
+    // Get all balances across all chains for each token
+    const tokenValues: Record<TokenSymbol, number> = {} as any;
+    let totalValue = 0;
 
-  //   if (!address) {
-  //     setSwapError('Please connect your wallet');
-  //     return;
-  //   }
+    tokens.forEach(({ symbol }) => {
+      let tokenTotal = 0;
+      chains.forEach(({ id }) => {
+        const balance = parseFloat(getFormattedBalance(symbol, id, TOKEN_CONFIG[symbol].decimals));
+        tokenTotal += balance;
+      });
+      tokenValues[symbol] = tokenTotal;
+      totalValue += tokenTotal;
+    });
 
-  //   setIsSwapping(true);
-  //   setSwapError('');
-  //   setTxHash('');
+    // Calculate current allocation percentages
+    const currentData = tokens.map(({ symbol, name }) => {
+      const value = totalValue > 0 ? (tokenValues[symbol] / totalValue) * 100 : 0;
+      return {
+        name: symbol,
+        fullName: name,
+        value: parseFloat(value.toFixed(2)),
+        balance: tokenValues[symbol].toFixed(4),
+        color: symbol === 'USDC' ? '#3B82F6' : symbol === 'USDT' ? '#10B981' : symbol === 'WETH' ? '#8B5CF6' : '#F59E0B'
+      };
+    }).filter(item => item.value > 0);
 
-  //   try {
-  //     const isCrossChain = fromChain !== toChain;
+    // Calculate suggested allocation (example: balanced portfolio with risk consideration)
+    const suggestedAllocation: Record<TokenSymbol, number> = {
+      'USDC': 40, // Stable
+      'USDT': 30, // Stable
+      'WETH': 25, // Growth
+      'DAI': 5    // Reserve
+    };
 
-  //     // Get token config
-  //     const tokenConfig = TOKEN_CONFIG[fromToken];
-  //     const decimals = tokenConfig.decimals;
-  //     const amountInBigInt = BigInt(Math.floor(parseFloat(swapAmount) * 10 ** decimals));
+    const suggestedData = tokens.map(({ symbol, name }) => ({
+      name: symbol,
+      fullName: name,
+      value: suggestedAllocation[symbol] || 0,
+      targetBalance: ((suggestedAllocation[symbol] || 0) / 100 * totalValue).toFixed(4),
+      color: symbol === 'USDC' ? '#3B82F6' : symbol === 'USDT' ? '#10B981' : symbol === 'WETH' ? '#8B5CF6' : '#F59E0B'
+    })).filter(item => item.value > 0);
 
-  //     if (isCrossChain) {
-  //       // Step 1: Bridge tokens to destination chain
-  //       console.log('Cross-chain swap detected. Bridging first...');
+    // Calculate changes needed
+    const changes = tokens.map(({ symbol }) => {
+      const current = currentData.find(d => d.name === symbol)?.value || 0;
+      const suggested = suggestedAllocation[symbol] || 0;
+      const change = parseFloat((suggested - current).toFixed(2));
+      const currentBalance = tokenValues[symbol];
+      const targetBalance = (suggested / 100) * totalValue;
+      const amountChange = targetBalance - currentBalance;
 
-  //       const bridgeParams = {
-  //         token: fromToken as any,
-  //         amount: parseFloat(swapAmount),
-  //         chainId: toChain,
-  //       };
+      return {
+        coin: symbol,
+        from: current.toFixed(2),
+        to: suggested.toFixed(2),
+        change,
+        action: change === 0 ? 'Hold' : change > 0 ? `Buy ${Math.abs(amountChange).toFixed(4)} ${symbol}` : `Sell ${Math.abs(amountChange).toFixed(4)} ${symbol}`,
+        amountChange: amountChange.toFixed(4)
+      };
+    }).sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
 
-  //       const bridgeResult = await bridge(bridgeParams);
+    // Calculate stability scores
+    const currentStability = calculateStabilityScore(currentData.map(d => d.value));
+    const suggestedStability = calculateStabilityScore(suggestedData.map(d => d.value));
 
-  //       if (!bridgeResult?.success) {
-  //         throw new Error('Bridge failed');
-  //       }
+    return {
+      current: currentData,
+      suggested: suggestedData,
+      changes,
+      totalValue: totalValue.toFixed(2),
+      currentStability,
+      suggestedStability,
+      stabilityImprovement: (Number(suggestedStability) - Number(currentStability)).toFixed(1)
+    };
+  };
 
-  //       console.log('Bridge successful, now executing swap on destination chain...');
-  //     }
+  // Calculate stability score (0-100) - higher is more stable
+  const calculateStabilityScore = (allocations: number[]) => {
+    // Calculate variance from ideal balanced portfolio
+    const idealAllocation = 100 / allocations.length;
+    const variance = allocations.reduce((sum, alloc) => {
+      return sum + Math.pow(alloc - idealAllocation, 2);
+    }, 0) / allocations.length;
+    
+    // Convert to 0-100 scale (lower variance = higher stability)
+    const maxVariance = Math.pow(100, 2); // Max possible variance
+    const stabilityScore = 100 - (variance / maxVariance) * 100;
+    return Math.max(0, Math.min(100, stabilityScore)).toFixed(0);
+  };
 
-  //     // Step 2: Execute swap (either on same chain or after bridge)
-  //     const targetChainId = isCrossChain ? toChain : fromChain;
-  //     const tokenInAddress = TOKEN_CONFIG[fromToken].addresses[targetChainId];
-  //     const tokenOutAddress = TOKEN_CONFIG[toToken].addresses[targetChainId];
-  //     const routerAddress = ROUTER_ADDRESSES[targetChainId];
+  const portfolioData = calculatePortfolioData();
 
-  //     if (!tokenInAddress || !tokenOutAddress || !routerAddress) {
-  //       throw new Error('Token or router not configured for selected chain');
-  //     }
-
-  //     const executeParams = {
-  //       toChainId: targetChainId as any,
-  //       contractAddress: routerAddress as `0x${string}`,
-  //       contractAbi: MOCK_ROUTER_ABI,
-  //       functionName: 'exactInputSingle',
-  //       buildFunctionParams: (
-  //         token: string,
-  //         amt: string,
-  //         chainId: number,
-  //         userAddress: `0x${string}`
-  //       ) => {
-  //         const minAmountOut = BigInt(1);
-  //         return {
-  //           functionParams: [
-  //             {
-  //               tokenIn: tokenInAddress as `0x${string}`,
-  //               tokenOut: tokenOutAddress as `0x${string}`,
-  //               fee: 3000,
-  //               recipient: userAddress,
-  //               amountIn: amountInBigInt,
-  //               amountOutMinimum: minAmountOut,
-  //               sqrtPriceLimitX96: BigInt(0),
-  //             },
-  //           ],
-  //         };
-  //       },
-  //       tokenApproval: {
-  //         token: fromToken as any,
-  //         amount: amountInBigInt.toString(),
-  //       },
-  //       waitForReceipt: true,
-  //       requiredConfirmations: 1,
-  //     };
-
-  //     const swapResult = await execute(executeParams);
-
-  //     if (swapResult?.transactionHash) {
-  //       setTxHash(swapResult.transactionHash);
-  //       setIsComplete(true);
-
-  //       // Refetch balances after successful swap
-  //       setTimeout(() => refetch(), 2000);
-  //     }
-  //   } catch (error: any) {
-  //     console.error('Swap error:', error);
-  //     setSwapError(error.message || 'Swap failed');
-  //   } finally {
-  //     setIsSwapping(false);
-  //   }
-  // };
   const swapEstimate = swapAmount && parseFloat(swapAmount) > 0 
     ? calculateSwapOutput(fromToken, toToken, swapAmount, 0.5) 
     : null;
@@ -430,7 +421,7 @@ export function RebalancePage() {
   const exchangeRate = getExchangeRate(fromToken, toToken);
 
   return (
-    <div className="min-h-screen pt-24 pb-12 bg-[#0D0F16] text-white">
+    <div className="min-h-screen pt-24 pb-12">
       <div className="container mx-auto px-6">
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2">Portfolio Rebalance</h1>
@@ -483,7 +474,7 @@ export function RebalancePage() {
           </motion.div>
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full max-w-md mx-auto grid-cols-1 mb-8 bg-white/5 border border-white/10">
+            <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-8 bg-white/5 border border-white/10">
             <TabsTrigger value="ai-suggested" className="data-[state=active]:bg-[#3B82F6]">
                 AI Suggested
               </TabsTrigger>
@@ -491,7 +482,232 @@ export function RebalancePage() {
                 Token Swap
               </TabsTrigger>
             </TabsList>
-           
+             <TabsContent value="ai-suggested" className="space-y-6">
+              {balancesLoading ? (
+                <div className="bg-white/5 rounded-2xl p-12 border border-white/10 text-center">
+                  <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-[#3B82F6]" />
+                  <p className="text-white/60">Loading portfolio data...</p>
+                </div>
+              ) : portfolioData.totalValue === "0.00" ? (
+                <div className="bg-white/5 rounded-2xl p-12 border border-white/10 text-center">
+                  <p className="text-white/60 mb-4">No tokens found in your portfolio</p>
+                  <p className="text-white/40 text-sm">Add some tokens to see AI suggestions</p>
+                </div>
+              ) : (
+                <>
+                  {/* Portfolio Value Header */}
+                  <motion.div
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-gradient-to-r from-[#3B82F6]/20 to-[#8B5CF6]/20 rounded-2xl p-6 border border-white/10 text-center"
+                  >
+                    <p className="text-white/60 text-sm mb-2">Total Portfolio Value</p>
+                    <h2 className="text-4xl font-bold">${portfolioData.totalValue}</h2>
+                    <div className="flex items-center gap-2 justify-center mt-2">
+                      <button
+                        onClick={() => refetch()}
+                        className="text-sm text-[#3B82F6] hover:text-[#2563EB] flex items-center gap-1"
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                        Refresh
+                      </button>
+                    </div>
+                  </motion.div>
+
+                  {/* Comparison View */}
+                  <div className="grid lg:grid-cols-2 gap-6">
+                    {/* Current Portfolio */}
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="bg-white/5 rounded-2xl p-6 border border-white/10"
+                    >
+                      <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-xl">Current Allocation</h2>
+                        <span className="px-3 py-1 rounded-full bg-white/10 text-sm text-white/60">
+                          Stability: {portfolioData.currentStability}%
+                        </span>
+                      </div>
+
+                      <div className="space-y-3">
+                        {portfolioData.current.map((item) => (
+                          <div key={item.name} className="bg-white/5 rounded-lg p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className="w-3 h-3 rounded-full"
+                                  style={{ backgroundColor: item.color }}
+                                />
+                                <span className="font-medium">{item.name}</span>
+                              </div>
+                              <span className="text-lg font-bold">{item.value}%</span>
+                            </div>
+                            <div className="flex justify-between text-sm text-white/60">
+                              <span>{item.fullName}</span>
+                              <span>{item.balance} tokens</span>
+                            </div>
+                            <div className="mt-2 h-2 bg-white/10 rounded-full overflow-hidden">
+                              <div
+                                className="h-full rounded-full transition-all"
+                                style={{ 
+                                  width: `${item.value}%`,
+                                  backgroundColor: item.color
+                                }}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </motion.div>
+
+                    {/* Suggested Portfolio */}
+                    <motion.div
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="bg-white/5 rounded-2xl p-6 border border-white/10 relative overflow-hidden"
+                    >
+                      <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-xl">Suggested Allocation</h2>
+                        <span className="px-3 py-1 rounded-full bg-[#8B5CF6]/20 text-sm text-[#8B5CF6] border border-[#8B5CF6]/30">
+                          Stability: {portfolioData.suggestedStability}%
+                        </span>
+                      </div>
+
+                      <div className="space-y-3">
+                        {portfolioData.suggested.map((item) => (
+                          <div key={item.name} className="bg-gradient-to-r from-[#8B5CF6]/10 to-transparent rounded-lg p-4 border border-[#8B5CF6]/20">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className="w-3 h-3 rounded-full"
+                                  style={{ backgroundColor: item.color }}
+                                />
+                                <span className="font-medium">{item.name}</span>
+                              </div>
+                              <span className="text-lg font-bold">{item.value}%</span>
+                            </div>
+                            <div className="flex justify-between text-sm text-white/60">
+                              <span>{item.fullName}</span>
+                              <span>Target: {item.targetBalance} tokens</span>
+                            </div>
+                            <div className="mt-2 h-2 bg-white/10 rounded-full overflow-hidden">
+                              <div
+                                className="h-full rounded-full transition-all"
+                                style={{ 
+                                  width: `${item.value}%`,
+                                  backgroundColor: item.color
+                                }}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </motion.div>
+                  </div>
+
+                  {/* Changes Summary */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="bg-white/5 rounded-2xl p-6 border border-white/10"
+                  >
+                    <h2 className="text-xl mb-6">Rebalance Actions</h2>
+
+                    <div className="space-y-3">
+                      {portfolioData.changes.map((change, index) => (
+                        <motion.div
+                          key={change.coin}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.3 + index * 0.1 }}
+                          className={`flex items-center justify-between p-4 rounded-lg ${
+                            change.change !== 0 ? "bg-white/5 border border-white/10" : "bg-white/0"
+                          }`}
+                        >
+                          <div className="flex items-center gap-4">
+                            <div
+                              className="w-10 h-10 rounded-lg flex items-center justify-center font-bold"
+                              style={{
+                                background: `${portfolioData.current.find((d) => d.name === change.coin)?.color || '#8B5CF6'}20`,
+                                color: portfolioData.current.find((d) => d.name === change.coin)?.color || '#8B5CF6'
+                              }}
+                            >
+                              {change.coin}
+                            </div>
+
+                            <div>
+                              <div className="mb-1 font-medium">{change.action}</div>
+                              <div className="flex items-center gap-2 text-sm text-white/60">
+                                <span>{change.from}%</span>
+                                {change.change !== 0 && (
+                                  <>
+                                    <ArrowRight className="w-3 h-3" />
+                                    <span>{change.to}%</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {change.change !== 0 && (
+                            <div
+                              className={`px-3 py-1 rounded-full text-sm font-medium ${
+                                change.change > 0
+                                  ? "bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/30"
+                                  : "bg-[#EF4444]/20 text-[#EF4444] border border-[#EF4444]/30"
+                              }`}
+                            >
+                              {change.change > 0 ? "+" : ""}
+                              {change.change}%
+                            </div>
+                          )}
+                        </motion.div>
+                      ))}
+                    </div>
+                  </motion.div>
+
+                  {/* Action Section */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.7 }}
+                    className="bg-gradient-to-r from-[#3B82F6]/10 to-[#8B5CF6]/10 rounded-2xl p-8 border border-white/10 text-center"
+                  >
+                    <div className="mb-6">
+                      <h3 className="text-2xl font-bold mb-2">Ready to Optimize?</h3>
+                      <p className="text-white/60">
+                        This rebalance will improve your portfolio stability by {portfolioData.stabilityImprovement}% 
+                        {parseFloat(portfolioData.stabilityImprovement ?? "0") > 0 ? ' and reduce portfolio risk.' : '.'}
+                      </p>
+                    </div>
+
+                    <div className="flex gap-4 justify-center items-center">
+                      <Button
+                        onClick={() => setActiveTab("manual-swap")}
+                        className="bg-white/5 border border-white/20 hover:bg-white/10 text-white"
+                      >
+                        Manual Swap Instead
+                      </Button>
+                      <Button
+                        disabled
+                        className="bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] text-white opacity-50 cursor-not-allowed"
+                      >
+                        Auto-Rebalance (Coming Soon)
+                      </Button>
+                    </div>
+
+                    <div className="mt-6 p-4 rounded-lg bg-[#3B82F6]/10 border border-[#3B82F6]/30">
+                      <p className="text-sm text-white/70">
+                        <span className="text-[#3B82F6]">Estimated Gas:</span> ~$2.50 •
+                        <span className="text-[#8B5CF6]"> Slippage:</span> 0.5% •
+                        <span className="text-white/50"> Time:</span> ~30-60 seconds
+                      </p>
+                    </div>
+                  </motion.div>
+                </>
+              )}
+            </TabsContent>
             <TabsContent value="manual-swap" className="space-y-6">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
