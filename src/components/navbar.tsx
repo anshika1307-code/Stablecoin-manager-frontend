@@ -15,6 +15,7 @@ export function Navbar({ currentPage, onNavigate }: NavbarProps) {
   const navItems = [
     { id: "dashboard", label: "Portfolio" },
     { id: "rebalance", label: "Rebalance" },
+    { id: "faucet", label: "Faucet" },
   ];
 
   useLayoutEffect(() => {
